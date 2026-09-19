@@ -176,6 +176,10 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="photo-lightbox" style="cursor:zoom-out;">
+  <img id="lightbox-img" style="max-width:90vw;max-height:90vh;border-radius:14px;border:2px solid var(--card-line);">
+</div>
+
 <script>
 const FIREBASE_PROJECT_ID = "family-tree-2026-5f95f";
 const FIREBASE_API_KEY = "AIzaSyC5v2zUEGaxo3yZbAhsBHoVc6JchbfashA";
@@ -543,6 +547,7 @@ function renderTree(){
   let branches = '';
   let svg = '';
   let clipIndex = 0;
+  const photoByIndex = {};
 
   nodes.forEach((node)=>{
     const pos = positions[node.key];
@@ -593,10 +598,14 @@ function renderTree(){
     const avatarCy = nameStartY - 14;
     let avatar = '<circle cx="'+(x+16)+'" cy="'+avatarCy+'" r="4" fill="'+col+'"/>';
     if(node.photo){
+      const photoIdx = clipIndex;
       const cid = 'clip'+(clipIndex++);
       defs += '<clipPath id="'+cid+'"><circle cx="'+(x+18)+'" cy="'+(avatarCy+2)+'" r="14"/></clipPath>';
-      avatar = '<image href="'+node.photo+'" x="'+(x+4)+'" y="'+(avatarCy-10)+'" width="28" height="28" clip-path="url(#'+cid+')" preserveAspectRatio="xMidYMid slice"/>'+
-        '<circle cx="'+(x+18)+'" cy="'+(avatarCy+2)+'" r="14" fill="none" stroke="'+col+'" stroke-width="1.4"/>';
+      avatar = '<g class="node-photo" data-photo-index="'+photoIdx+'" style="cursor:zoom-in">'
+        + '<image href="'+node.photo+'" x="'+(x+4)+'" y="'+(avatarCy-10)+'" width="28" height="28" clip-path="url(#'+cid+')" preserveAspectRatio="xMidYMid slice"/>'
+        + '<circle cx="'+(x+18)+'" cy="'+(avatarCy+2)+'" r="14" fill="none" stroke="'+col+'" stroke-width="1.4"/>'
+        + '</g>';
+      photoByIndex[photoIdx] = node.photo;
     }
     svg += '<g class="fam-node" data-id="'+esc(node.key)+'" style="cursor:pointer">'
       + '<rect class="node-card" x="'+x+'" y="'+y+'" width="'+nodeW+'" height="'+nodeH+'" rx="10" style="stroke:'+col+'"/>'
@@ -631,9 +640,25 @@ function renderTree(){
       document.getElementById('f-name').scrollIntoView({behavior:'smooth', block:'center'});
     });
   });
+  container.querySelectorAll('.node-photo').forEach(el=>{
+    el.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      const idx = el.getAttribute('data-photo-index');
+      const src = photoByIndex[idx];
+      if(src) openLightbox(src);
+    });
+  });
   renderLegend(nodes);
   const zoomLabel = document.getElementById('zoom-level');
   if(zoomLabel) zoomLabel.textContent = Math.round(zoomLevel * 100) + '%';
+}
+
+function openLightbox(src){
+  const overlay = document.getElementById('photo-lightbox');
+  const img = document.getElementById('lightbox-img');
+  if(!overlay || !img) return;
+  img.src = src;
+  overlay.style.display = 'flex';
 }
 
 function renderLegend(nodes){
@@ -655,7 +680,7 @@ function renderEntries(){
     const life = lifespan(e);
     const col = familyColor(e.family);
     const thumb = e.photo
-      ? '<img class="thumb" src="'+e.photo+'">'
+      ? '<img class="thumb" src="'+e.photo+'" style="cursor:zoom-in">'
       : '<div class="thumb-fallback" style="background:'+col+'22;color:'+col+';">'+esc((e.name||'?')[0].toUpperCase())+'</div>';
     return '<div class="entry-row">'
       + '<div class="entry-left">'+thumb+'<div>'
@@ -668,6 +693,9 @@ function renderEntries(){
       + '</div>'
       + '</div>';
   }).join('');
+  list.querySelectorAll('img.thumb').forEach(img=>{
+    img.addEventListener('click', ()=>openLightbox(img.src));
+  });
   list.querySelectorAll('button[data-id]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       pendingDeleteId = btn.getAttribute('data-id');
@@ -962,6 +990,10 @@ function renderApp(){
   document.getElementById('print-btn').addEventListener('click', ()=>{
     try{ window.print(); }
     catch(e){ /* sandboxed browsers may block this — the hint below covers it */ }
+  });
+
+  document.getElementById('photo-lightbox').addEventListener('click', ()=>{
+    document.getElementById('photo-lightbox').style.display = 'none';
   });
 
   document.getElementById('change-pins-btn').addEventListener('click', ()=>{
