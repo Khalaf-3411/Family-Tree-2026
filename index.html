@@ -213,6 +213,7 @@ let pendingPhotoData = '';
 let editingId = null;
 let zoomLevel = 1;
 let connectionError = false;
+let usingSeedFallback = false;
 
 const FAMILY_COLORS = ['#c9a24b','#83967a','#b5715f','#6f93a8','#9b83ad','#c48a4c'];
 
@@ -377,18 +378,30 @@ function buildSeedEntries(){
 }
 
 async function loadEntries(){
+  usingSeedFallback = false;
   try{
-    const fetched = await firestoreGet('entries');
-    const raw = fetched || [];
-    const {migrated, changed} = migrateLegacyEntries(raw);
-    entries = migrated;
-    let seeded = false;
+    let fetched = await firestoreGet('entries');
     if(fetched === null){
-      entries = buildSeedEntries();
-      seeded = true;
+      // A single null read could be a genuine first-ever setup, or it could be a
+      // transient network hiccup — retry once before treating it as truly empty,
+      // since treating a hiccup as "empty" must never lead to overwriting real data.
+      await new Promise(r=>setTimeout(r, 1200));
+      fetched = await firestoreGet('entries');
     }
+    if(fetched === null){
+      // Confirmed empty on two consecutive reads. Show starter data so the tree
+      // isn't blank, but do NOT save it — only a real user action (adding someone,
+      // editing, importing) ever writes to Firestore from here. This way, even if
+      // this were somehow still a transient issue, nothing gets overwritten.
+      entries = buildSeedEntries();
+      usingSeedFallback = true;
+      connectionError = false;
+      return;
+    }
+    const {migrated, changed} = migrateLegacyEntries(fetched);
+    entries = migrated;
     const genderChanged = inferMissingGenders(entries);
-    if(changed || genderChanged || seeded) await saveEntries();
+    if(changed || genderChanged) await saveEntries();
     connectionError = false;
   }catch(e){
     console.error('Could not load the record', e);
@@ -908,6 +921,11 @@ function renderApp(){
     }
 
     await loadEntries();
+    if(usingSeedFallback){
+      err.textContent = "Couldn't confirm the tree's current data just now — to avoid accidentally overwriting anyone, please wait a moment and try again.";
+      err.style.display = 'block';
+      return;
+    }
     if(editingId){
       const idx = entries.findIndex(e=>e.id === editingId);
       if(idx !== -1){
