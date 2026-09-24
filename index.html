@@ -562,6 +562,16 @@ function renderTree(){
   let clipIndex = 0;
   const photoByIndex = {};
 
+  // Each parent gets its own consistent bend height, spread across a small range.
+  // Without this, any two people's connector lines that happen to end at the same
+  // depth always bend at the identical height, so a long line crossing another
+  // parent's busy row of children visually blends into that row.
+  function bendOffsetForParent(parentKey){
+    let hash = 0;
+    for(let i=0;i<parentKey.length;i++){ hash = (hash*31 + parentKey.charCodeAt(i)) >>> 0; }
+    return 16 + (hash % 6) * 9; // one of 16,25,34,43,52,61
+  }
+
   nodes.forEach((node)=>{
     const pos = positions[node.key];
     const cx = pos.x + padX + nodeW/2, cy = pos.y + padY;
@@ -579,14 +589,14 @@ function renderTree(){
         parentsPositioned.forEach(pKey=>{
           const p = positions[pKey];
           const ax = p.x+padX+nodeW/2, ay = p.y+padY+nodeH;
-          const bendY = cy - 24;
+          const bendY = cy - bendOffsetForParent(pKey);
           branches += '<path class="branch" d="M '+ax+' '+ay+' L '+ax+' '+bendY+' L '+cx+' '+bendY+' L '+cx+' '+cy+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
         });
       }
     } else if(parentsPositioned.length === 1){
       const a = positions[parentsPositioned[0]];
       const ax = a.x+padX+nodeW/2, ay = a.y+padY+nodeH;
-      const bendY = cy - 24;
+      const bendY = cy - bendOffsetForParent(parentsPositioned[0]);
       branches += '<path class="branch" d="M '+ax+' '+ay+' L '+ax+' '+bendY+' L '+cx+' '+bendY+' L '+cx+' '+cy+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
     }
   });
