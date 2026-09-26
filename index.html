@@ -530,13 +530,34 @@ function computeLayout(nodes){
     const keys = (levels[d] || []).slice();
     if(d===0){ keys.sort((a,b)=>nodes.get(a).name.localeCompare(nodes.get(b).name)); }
     else { keys.sort((a,b)=>barycenter(a)-barycenter(b) || nodes.get(a).name.localeCompare(nodes.get(b).name)); }
-    keys.forEach((key,i)=>{ positions[key] = {x: i*spacingX, y: d*spacingY, depth:d}; });
+    // Give different parents' children clusters a visible gap, not just a subtle
+    // height difference — this is what actually reads as "these are two separate
+    // family groups" at a glance, rather than relying on a hash-based line height
+    // that sometimes lands too close to another parent's to be noticeable.
+    let cursorX = 0;
+    let prevParentKey = undefined;
+    keys.forEach((key)=>{
+      const node = nodes.get(key);
+      const thisParentKey = node.parents[0] || null;
+      if(prevParentKey !== undefined && thisParentKey !== prevParentKey){ cursorX += spacingX * 0.6; }
+      positions[key] = {x: cursorX, y: d*spacingY, depth:d};
+      cursorX += spacingX;
+      prevParentKey = thisParentKey;
+    });
   }
   let widest = 0;
-  for(let d=0; d<=maxDepth; d++){ widest = Math.max(widest, ((levels[d]||[]).length-1)*spacingX); }
   for(let d=0; d<=maxDepth; d++){
     const keys = levels[d] || [];
-    const offset = (widest - (keys.length-1)*spacingX)/2;
+    if(keys.length){
+      const last = positions[keys[keys.length-1]].x;
+      widest = Math.max(widest, last);
+    }
+  }
+  for(let d=0; d<=maxDepth; d++){
+    const keys = levels[d] || [];
+    if(!keys.length) continue;
+    const levelWidth = positions[keys[keys.length-1]].x;
+    const offset = (widest - levelWidth)/2;
     keys.forEach(key=>{ positions[key].x += offset; });
   }
   const width = widest + nodeW + 80;
