@@ -1,9 +1,190 @@
+<!DOCTYPE html>
+<!-- build: id-linked-v1 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Family Tree</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1c1b17;
+    --panel:#221f19;
+    --card:#2b271f;
+    --card-line:#3c3627;
+    --ink:#ece6d4;
+    --ink-dim:#a89e88;
+    --gold:#c9a24b;
+    --danger:#c26a5f;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;}
+  .wrap{max-width:1680px;margin:0 auto;padding:40px 28px 80px;position:relative;}
+  .signature{position:absolute;top:40px;right:28px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink);text-align:right;}
+  header{margin-bottom:36px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin:0 0 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .badge{font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0;font-size:11.5px;background:#2e2a1c;border:1px solid var(--card-line);color:var(--ink-dim);padding:3px 9px;border-radius:20px;}
+  h1{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;font-size:44px;margin:0 0 8px;color:var(--ink);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:640px;line-height:1.55;margin:0;}
+  .layout{display:grid;grid-template-columns:340px 1fr;gap:28px;align-items:start;}
+  @media(max-width:900px){
+    .layout{grid-template-columns:1fr;}
+    .signature{position:static;text-align:left;margin-bottom:14px;display:block;}
+  }
+  .panel{background:var(--panel);border:1px solid var(--card-line);border-radius:14px;padding:22px;}
+  .panel h2{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:20px;margin:0 0 4px;color:var(--ink);}
+  .panel .hint{font-size:12.5px;color:var(--ink-dim);margin:0 0 18px;line-height:1.5;}
+  label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-dim);margin:14px 0 6px;}
+  label.req::after{content:" *";color:var(--danger);}
+  input,select{width:100%;background:#171511;border:1px solid var(--card-line);border-radius:8px;color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;padding:10px 12px;outline:none;}
+  input:focus,select:focus{border-color:var(--gold);}
+  input::placeholder{color:#635c4c;}
+  input[type="date"]{color-scheme:dark;}
+  input[type="file"]{padding:8px;font-size:12.5px;}
+  input[type="password"]{letter-spacing:0.2em;}
+  select{cursor:pointer;}
+  .field-hint{font-size:11px;color:var(--ink-dim);margin-top:5px;line-height:1.4;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .err{font-size:12px;color:var(--danger);margin-top:6px;display:none;}
+  button{font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;border-radius:8px;cursor:pointer;border:1px solid var(--card-line);background:transparent;color:var(--ink);transition:transform .08s ease;}
+  button:active{transform:scale(0.98);}
+  .btn-primary{width:100%;margin-top:18px;padding:11px;background:var(--gold);border-color:var(--gold);color:#241c0c;}
+  .btn-primary:hover{background:#d9b25f;}
+  .btn-ghost{padding:7px 10px;font-size:12px;color:var(--ink-dim);}
+  .btn-ghost:hover{color:var(--danger);border-color:var(--danger);}
+  .btn-refresh{padding:6px 12px;font-size:12px;color:var(--ink-dim);}
+  .btn-refresh:hover{color:var(--gold);border-color:var(--gold);}
+  .entry-actions{display:flex;gap:6px;flex-shrink:0;}
+  .form-actions{display:flex;gap:8px;align-items:center;margin-top:18px;}
+  .form-actions .btn-primary{margin-top:0;flex:1;}
+  .form-actions .btn-ghost{padding:11px 14px;}
+  .photo-preview{width:52px;height:52px;border-radius:50%;object-fit:cover;margin-top:10px;border:1px solid var(--card-line);display:none;}
+  .entries{margin-top:24px;}
+  .entries h2{margin-bottom:4px;}
+  .entries .hint{margin-bottom:14px;}
+  .entry-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--card-line);}
+  .entry-row:first-of-type{border-top:none;}
+  .entry-left{display:flex;gap:10px;align-items:flex-start;}
+  .thumb{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--card-line);flex-shrink:0;}
+  .thumb-fallback{width:32px;height:32px;border-radius:50%;border:1px solid var(--card-line);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:14px;flex-shrink:0;}
+  .entry-name{font-size:13.5px;font-weight:600;}
+  .entry-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);margin-top:2px;line-height:1.5;}
+  .empty{font-size:13px;color:var(--ink-dim);padding:8px 0;}
+  .canvas-panel{background:var(--panel);border:1px solid var(--card-line);border-radius:14px;padding:8px;overflow-x:auto;}
+  .canvas-inner{min-height:420px;position:relative;}
+  .legend-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 0;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .node-card{fill:var(--card);stroke:var(--card-line);stroke-width:1.2;}
+  .node-name{font-family:'Cormorant Garamond',serif;font-weight:600;fill:var(--ink);}
+  .node-family{font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;}
+  .node-dates{font-family:'IBM Plex Mono',monospace;fill:var(--ink-dim);}
+  .node-mother{font-family:'Inter',sans-serif;font-style:italic;fill:var(--ink-dim);}
+  .branch{fill:none;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;}
+  .empty-canvas{display:flex;align-items:center;justify-content:center;min-height:420px;text-align:center;color:var(--ink-dim);font-size:14px;padding:20px;}
+  .loading{padding:60px;text-align:center;color:var(--ink-dim);font-size:14px;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,9,6,0.6);align-items:center;justify-content:center;z-index:60;padding:20px;}
+  .modal-box{background:var(--panel);border:1px solid var(--card-line);border-radius:14px;padding:22px;width:300px;max-width:100%;}
+  .modal-box h3{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:19px;margin:0 0 8px;}
+  .modal-box p{font-size:13px;color:var(--ink-dim);line-height:1.5;margin:0 0 14px;}
+  .modal-actions{display:flex;gap:8px;margin-top:14px;}
+  .modal-actions button{flex:1;margin-top:0;}
+  .btn-print{padding:6px 12px;font-size:12px;color:var(--ink-dim);}
+  .zoom-controls{display:flex;align-items:center;gap:6px;}
+  .zoom-controls .btn-refresh{padding:6px 10px;}
+  #zoom-level{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);min-width:38px;text-align:center;}
+  .btn-print:hover{color:var(--gold);border-color:var(--gold);}
+  .print-hint{font-size:11px;color:var(--ink-dim);padding:6px 14px 0;margin:0;text-align:right;}
+  @page{
+    size: landscape;
+    margin: 10mm;
+  }
+  @media print{
+    :root{
+      --bg:#ffffff; --panel:#ffffff; --card:#ffffff;
+      --card-line:#333333; --ink:#161514; --ink-dim:#555248; --gold:#8a6a1f;
+    }
+    body{background:#fff;}
+    .no-print{display:none !important;}
+    .wrap{padding:0;max-width:100%;}
+    header{margin-bottom:10px;}
+    .signature{position:static;text-align:right;margin-bottom:6px;color:#ffffff !important;}
+    .layout{display:block;}
+    .canvas-panel{border:none;padding:0;overflow:visible;margin-bottom:26px;}
+    .canvas-inner{text-align:center;}
+    .canvas-inner svg{
+      width:auto !important;
+      height:auto !important;
+      min-width:0 !important;
+      max-width:100% !important;
+      display:inline-block;
+    }
+    .side-col{display:block;}
+    .entries{border:1px solid var(--card-line);}
+    h1{font-size:26px;margin-bottom:4px;}
+    .sub{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="signature">Created by<br>Khalaf Mohammed Qassim Al-Ismaily</p>
+  <header>
+    <p class="eyebrow">Living record <span class="badge no-print">Shared &middot; everyone can add</span><span class="badge no-print">PIN-protected removal</span></p>
+    <h1>The family tree</h1>
+    <p class="sub no-print">Pick a person's father and (if she's already recorded) mother from the list — no retyping names, no typos creating duplicate people. If a parent isn't in the tree yet, add them first as their own entry, then come back and select them.</p>
+  </header>
+  <div id="conn-error-banner" style="display:none;background:#3a2420;border:1px solid var(--danger);color:#f0c9c2;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;">
+    Couldn't connect to the family tree's database right now. Your view may be out of date, and any changes you make might not save. Try refreshing the page in a moment.
+  </div>
+  <div id="app" class="loading">Opening the record…</div>
+</div>
+
+<div class="modal-overlay" id="pin-overlay">
+  <div class="modal-box">
+    <h3 id="pin-title">Set a removal PIN</h3>
+    <p id="pin-msg">Choose a PIN. From now on, removing anyone from the tree will require it.</p>
+    <input id="pin-input" type="password" placeholder="PIN">
+    <input id="pin-confirm" type="password" placeholder="Confirm PIN" style="margin-top:8px;display:none;">
+    <div class="err" id="pin-err"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="pin-cancel">Cancel</button>
+      <button class="btn-primary" id="pin-submit" style="margin-top:0;">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="change-pins-overlay">
+  <div class="modal-box" style="width:340px;">
+    <h3>Change PINs</h3>
+    <p style="font-size:13px;color:var(--ink-dim);margin:0 0 14px;">Changing a PIN requires the current one. Changing the access PIN will require everyone (including you) to re-enter it next time.</p>
+    <label style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-dim);margin:10px 0 6px;">Which PIN?</label>
+    <select id="cp-which"><option value="access">Access PIN (opens the whole tree)</option><option value="removal">Removal PIN (deleting people)</option></select>
+    <label style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-dim);margin:10px 0 6px;">Current PIN</label>
+    <input id="cp-current" type="password">
+    <label style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-dim);margin:10px 0 6px;">New PIN</label>
+    <input id="cp-new" type="password">
+    <label style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-dim);margin:10px 0 6px;">Confirm new PIN</label>
+    <input id="cp-new-confirm" type="password">
+    <div class="err" id="cp-err"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="cp-cancel">Cancel</button>
+      <button class="btn-primary" id="cp-submit" style="margin-top:0;">Change PIN</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="photo-lightbox" style="cursor:zoom-out;">
+  <img id="lightbox-img" style="max-width:90vw;max-height:90vh;border-radius:14px;border:2px solid var(--card-line);">
+</div>
+
 <script>
 const FIREBASE_PROJECT_ID = "family-tree-2026-5f95f";
 const FIREBASE_API_KEY = "AIzaSyC5v2zUEGaxo3yZbAhsBHoVc6JchbfashA";
 const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/'+FIREBASE_PROJECT_ID+'/databases/(default)/documents/familyTree';
 
-// Plain REST calls instead of the Firebase SDK
 async function firestoreGet(docName){
   const res = await fetch(FIRESTORE_BASE+'/'+docName+'?key='+FIREBASE_API_KEY);
   if(res.status === 404) return null;
@@ -40,7 +221,7 @@ function familyColor(family){
   return FAMILY_COLORS[hash % FAMILY_COLORS.length];
 }
 function esc(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function fmtYear(d){
   if(!d) return '';
@@ -69,7 +250,6 @@ function simpleHash(str){
   return (h>>>0).toString(36);
 }
 
-// ---- Core identity helpers ----
 function getEntryById(id){ return entries.find(e=>e.id===id) || null; }
 function fullNameFor(entry){
   if(!entry) return '';
@@ -81,20 +261,7 @@ function motherLabelFor(entry){
   if(entry.motherId){ return fullNameFor(getEntryById(entry.motherId)); }
   return entry.motherText || '';
 }
-function ancestorIdsOf(id){
-  const result = new Set();
-  function climb(curId){
-    const e = getEntryById(curId);
-    if(!e) return;
-    [e.fatherId, e.motherId].forEach(pid=>{
-      if(pid && !result.has(pid)){ result.add(pid); climb(pid); }
-    });
-  }
-  climb(id);
-  return result;
-}
 
-// ---- Migration helper ----
 function migrateLegacyEntries(raw){
   const isLegacy = raw.some(e => e.fatherId === undefined && (e.father !== undefined || e.mother !== undefined));
   if(!isLegacy) return {migrated: raw, changed: false};
@@ -223,14 +390,6 @@ async function saveAdmin(hash){
   try{ await firestoreSet('admin', {pinHash: hash}); }
   catch(e){ console.error('Could not save the PIN', e); }
 }
-async function loadAccessPin(){
-  try{ const data = await firestoreGet('access'); return data ? (data.pinHash || null) : null; }
-  catch(e){ return null; }
-}
-async function saveAccessPin(hash){
-  try{ await firestoreSet('access', {pinHash: hash}); }
-  catch(e){ console.error('Could not save the access PIN', e); }
-}
 
 function startRealtimeSync(){
   setInterval(async ()=>{
@@ -329,7 +488,6 @@ function computeLayout(nodes){
     const keys = (levels[d] || []).slice();
     if(d===0){ keys.sort((a,b)=>nodes.get(a).name.localeCompare(nodes.get(b).name)); }
     else { keys.sort((a,b)=>barycenter(a)-barycenter(b) || nodes.get(a).name.localeCompare(nodes.get(b).name)); }
-
     let cursorX = 0;
     let prevParentKey = undefined;
     keys.forEach((key)=>{
@@ -384,15 +542,27 @@ function renderTree(){
     const cx = pos.x + padX + nodeW/2, cy = pos.y + padY;
     const parentsPositioned = node.parents.filter(p=>positions[p]);
     const col = familyColor(node.family);
-
-    if(parentsPositioned.length > 0){
-      const parentXs = parentsPositioned.map(pKey => positions[pKey].x + padX + nodeW/2);
-      const parentYs = parentsPositioned.map(pKey => positions[pKey].y + padY + nodeH);
-      const startX = parentXs.reduce((a, b) => a + b, 0) / parentXs.length;
-      const startY = Math.max(...parentYs);
-      const bendY = startY + (cy - startY) / 2;
-
-      branches += '<path class="branch" d="M '+startX+' '+startY+' L '+startX+' '+bendY+' L '+cx+' '+bendY+' L '+cx+' '+cy+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
+    if(parentsPositioned.length === 2){
+      const a = positions[parentsPositioned[0]], b = positions[parentsPositioned[1]];
+      if(a.y === b.y){
+        const ax = a.x+padX+nodeW/2, ay = a.y+padY+nodeH;
+        const bx = b.x+padX+nodeW/2, by = b.y+padY+nodeH;
+        const midX = (ax+bx)/2, midY = (ay+by)/2;
+        branches += '<path class="branch" d="M '+ax+' '+(ay-nodeH/2)+' L '+bx+' '+(by-nodeH/2)+'" stroke="'+col+'" opacity="0.55"/>';
+        branches += '<path class="branch" d="M '+midX+' '+(midY-nodeH/2)+' L '+midX+' '+(cy-24)+' L '+cx+' '+(cy-24)+' L '+cx+' '+cy+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
+      } else {
+        parentsPositioned.forEach(pKey=>{
+          const p = positions[pKey];
+          const ax = p.x+padX+nodeW/2, ay = p.y+padY+nodeH;
+          const bendY = cy - 24;
+          branches += '<path class="branch" d="M '+ax+' '+ay+' L '+ax+' '+bendY+' L '+cx+' '+bendY+' L '+cx+' '+cy+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
+        });
+      }
+    } else if(parentsPositioned.length === 1){
+      const a = positions[parentsPositioned[0]];
+      const ax = a.x+padX+nodeW/2, ay = a.y+padY+nodeH;
+      const bendY = cy - 24;
+      branches += '<path class="branch" d="M '+ax+' '+ay+' L '+ax+' '+bendY+' L '+cx+' '+bendY+' L '+cx+' '+cy+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
     }
   });
 
@@ -453,492 +623,403 @@ function renderTree(){
   container.querySelectorAll('.fam-node').forEach(el=>{
     el.addEventListener('click', ()=>{
       const id = el.getAttribute('data-id');
-      const select = document.getElementById('f-father-select');
-      if(select && !select.value){ select.value = id; select.dispatchEvent(new Event('change')); }
-      document.getElementById('f-name').scrollIntoView({behavior:'smooth', block:'center'});
+      const entry = getEntryById(id);
+      if(entry) startEdit(entry);
     });
   });
-  container.querySelectorAll('.node-photo').forEach(el=>{
-    el.addEventListener('click', (ev)=>{
-      ev.stopPropagation();
-      const idx = el.getAttribute('data-photo-index');
-      const src = photoByIndex[idx];
-      if(src) openLightbox(src);
-    });
-  });
-  renderLegend(nodes);
-  const zoomLabel = document.getElementById('zoom-level');
-  if(zoomLabel) zoomLabel.textContent = Math.round(zoomLevel * 100) + '%';
-}
 
-function openLightbox(src){
-  const overlay = document.getElementById('photo-lightbox');
-  const img = document.getElementById('lightbox-img');
-  if(!overlay || !img) return;
-  img.src = src;
-  overlay.style.display = 'flex';
+  container.querySelectorAll('.node-photo').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const idx = el.getAttribute('data-photo-index');
+      if(photoByIndex[idx]){
+        document.getElementById('lightbox-img').src = photoByIndex[idx];
+        document.getElementById('photo-lightbox').style.display = 'flex';
+      }
+    });
+  });
+
+  renderLegend(nodes);
 }
 
 function renderLegend(nodes){
+  const legendEl = document.getElementById('legend-container');
+  if(!legendEl) return;
   const families = new Set();
-  nodes.forEach(n=>families.add((n.family||'unrecorded').trim() || 'unrecorded'));
-  const legend = document.getElementById('legend');
-  if(!legend) return;
-  legend.innerHTML = families.size ? [...families].map(f=>'<span><i style="background:'+familyColor(f)+'"></i>'+esc(f)+'</span>').join('') : '';
+  nodes.forEach(n => {
+    if(n.family) families.add(n.family);
+  });
+  if(families.size === 0){
+    legendEl.innerHTML = '';
+    return;
+  }
+  let html = '<span><strong>Families:</strong></span>';
+  families.forEach(fam => {
+    const col = familyColor(fam);
+    html += '<span><i style="background:'+col+'"></i>'+esc(fam)+'</span>';
+  });
+  legendEl.innerHTML = html;
 }
 
-function renderEntries(){
-  const list = document.getElementById('entry-list');
-  if(!list) return;
-  if(!entries.length){ list.innerHTML = '<p class="empty">No one has been added yet.</p>'; return; }
-  list.innerHTML = entries.slice().reverse().map(e=>{
-    const father = e.fatherId ? fullNameFor(getEntryById(e.fatherId)) : '';
-    const mother = motherLabelFor(e);
-    const parents = [mother, father].filter(Boolean).join(' & ') || 'no parents recorded';
-    const life = lifespan(e);
+function renderForm(){
+  const isEditing = !!editingId;
+  const entry = isEditing ? getEntryById(editingId) : null;
+  
+  let candidateParents = entries;
+  if(isEditing){
+    const invalidIds = new Set([editingId]);
+    function addDescendants(pid){
+      entries.forEach(e => {
+        if((e.fatherId === pid || e.motherId === pid) && !invalidIds.has(e.id)){
+          invalidIds.add(e.id);
+          addDescendants(e.id);
+        }
+      });
+    }
+    addDescendants(editingId);
+    candidateParents = entries.filter(e => !invalidIds.has(e.id));
+  }
+
+  const maleOptions = candidateParents
+    .filter(e => e.gender === 'male' || e.gender === null || e.gender === undefined)
+    .map(e => '<option value="'+esc(e.id)+'" '+(entry && entry.fatherId === e.id ? 'selected' : '')+'>'+esc(fullNameFor(e))+'</option>')
+    .join('');
+
+  const femaleOptions = candidateParents
+    .filter(e => e.gender === 'female' || e.gender === null || e.gender === undefined)
+    .map(e => '<option value="'+esc(e.id)+'" '+(entry && entry.motherId === e.id ? 'selected' : '')+'>'+esc(fullNameFor(e))+'</option>')
+    .join('');
+
+  const html = `
+    <div class="panel">
+      <h2>${isEditing ? 'Edit person' : 'Add a person'}</h2>
+      <p class="hint">${isEditing ? 'Update details or reassign parents.' : 'Enter personal details and choose parents from existing records.'}</p>
+      
+      <label class="req">First Name</label>
+      <input id="f-name" type="text" placeholder="e.g. Khalaf" value="${entry ? esc(entry.name) : ''}">
+      <div class="err" id="err-name">Please enter a first name.</div>
+
+      <label>Gender</label>
+      <select id="f-gender">
+        <option value="" ${!entry || !entry.gender ? 'selected' : ''}>Unspecified</option>
+        <option value="male" ${entry && entry.gender === 'male' ? 'selected' : ''}>Male</option>
+        <option value="female" ${entry && entry.gender === 'female' ? 'selected' : ''}>Female</option>
+      </select>
+
+      <label>Family Name / Tribe</label>
+      <input id="f-family" type="text" placeholder="e.g. Al-Ismaily" value="${entry ? esc(entry.family) : ''}">
+
+      <label>Father</label>
+      <select id="f-father">
+        <option value="">-- Select Father --</option>
+        ${maleOptions}
+      </select>
+
+      <label>Mother</label>
+      <select id="f-mother">
+        <option value="">-- Select Mother --</option>
+        ${femaleOptions}
+      </select>
+      <div class="field-hint">If mother is not in records, enter her name below:</div>
+      <input id="f-mother-text" type="text" placeholder="Mother's full name (optional)" value="${entry ? esc(entry.motherText || '') : ''}" style="margin-top:4px;">
+
+      <div class="row2">
+        <div>
+          <label>Birth Date / Year</label>
+          <input id="f-birth" type="text" placeholder="YYYY or YYYY-MM-DD" value="${entry ? esc(entry.birth) : ''}">
+        </div>
+        <div>
+          <label>Death Date / Year</label>
+          <input id="f-death" type="text" placeholder="YYYY or YYYY-MM-DD" value="${entry ? esc(entry.death) : ''}">
+        </div>
+      </div>
+
+      <label>Photo</label>
+      <input id="f-photo" type="file" accept="image/*">
+      <img id="f-photo-preview" class="photo-preview" src="${entry && entry.photo ? esc(entry.photo) : ''}" style="${entry && entry.photo ? 'display:block;' : 'display:none;'}">
+
+      <div class="form-actions">
+        ${isEditing ? '<button class="btn-ghost" onclick="cancelEdit()">Cancel</button>' : ''}
+        <button class="btn-primary" onclick="submitForm()">${isEditing ? 'Save Changes' : 'Add to Tree'}</button>
+      </div>
+    </div>
+  `;
+
+  const formContainer = document.getElementById('form-container');
+  if(formContainer){
+    formContainer.innerHTML = html;
+    
+    const photoInput = document.getElementById('f-photo');
+    if(photoInput){
+      photoInput.addEventListener('change', async (e)=>{
+        const file = e.target.files[0];
+        if(file){
+          try{
+            pendingPhotoData = await compressImage(file);
+            const preview = document.getElementById('f-photo-preview');
+            if(preview){
+              preview.src = pendingPhotoData;
+              preview.style.display = 'block';
+            }
+          }catch(err){
+            console.error('Failed to compress image', err);
+          }
+        }
+      });
+    }
+  }
+}
+
+function renderEntriesList(){
+  const container = document.getElementById('entries-list-container');
+  if(!container) return;
+
+  if(entries.length === 0){
+    container.innerHTML = '<div class="empty">No entries in the tree yet.</div>';
+    return;
+  }
+
+  const sorted = entries.slice().sort((a,b)=> fullNameFor(a).localeCompare(fullNameFor(b)));
+  
+  const listHtml = sorted.map(e => {
     const col = familyColor(e.family);
-    const thumb = e.photo
-      ? '<img class="thumb" src="'+e.photo+'" style="cursor:zoom-in">'
-      : '<div class="thumb-fallback" style="background:'+col+'22;color:'+col+';">'+esc((e.name||'?')[0].toUpperCase())+'</div>';
-    return '<div class="entry-row">'
-      + '<div class="entry-left">'+thumb+'<div>'
-      + '<div class="entry-name">'+esc(fullNameFor(e))+'</div>'
-      + '<div class="entry-meta">'+esc(parents)+' &middot; '+esc(e.family || 'unrecorded')+(life ? ' &middot; '+esc(life) : '')+'</div>'
-      + '</div></div>'
-      + '<div class="entry-actions">'
-      + '<button class="btn-ghost" data-edit-id="'+e.id+'">edit</button>'
-      + '<button class="btn-ghost" data-id="'+e.id+'">remove</button>'
-      + '</div>'
-      + '</div>';
+    const life = lifespan(e);
+    const mLabel = motherLabelFor(e);
+    const thumb = e.photo 
+      ? '<img class="thumb" src="'+esc(e.photo)+'" style="border-color:'+col+'">'
+      : '<div class="thumb-fallback" style="border-color:'+col+';color:'+col+'">'+esc((e.name||'?')[0].toUpperCase())+'</div>';
+
+    return `
+      <div class="entry-row">
+        <div class="entry-left">
+          ${thumb}
+          <div>
+            <div class="entry-name">${esc(fullNameFor(e))}</div>
+            <div class="entry-meta">
+              ${e.family ? 'Family: '+esc(e.family) : 'Family: Unrecorded'}
+              ${mLabel ? ' &middot; m. '+esc(mLabel) : ''}
+              ${life ? ' &middot; '+esc(life) : ''}
+            </div>
+          </div>
+        </div>
+        <div class="entry-actions">
+          <button class="btn-refresh" onclick="startEditById('${esc(e.id)}')">Edit</button>
+          <button class="btn-ghost" onclick="promptDelete('${esc(e.id)}')">Remove</button>
+        </div>
+      </div>
+    `;
   }).join('');
-  list.querySelectorAll('img.thumb').forEach(img=>{
-    img.addEventListener('click', ()=>openLightbox(img.src));
-  });
-  list.querySelectorAll('button[data-id]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      pendingDeleteId = btn.getAttribute('data-id');
-      openPinModal(adminPinHash ? 'verify' : 'set');
-    });
-  });
-  list.querySelectorAll('button[data-edit-id]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      startEdit(btn.getAttribute('data-edit-id'));
-    });
-  });
+
+  container.innerHTML = listHtml;
 }
 
 function renderAll(){
-  populateParentDropdowns();
-  renderEntries();
+  const app = document.getElementById('app');
+  if(!app) return;
+
+  if(app.classList.contains('loading')){
+    app.classList.remove('loading');
+    app.innerHTML = `
+      <div class="layout">
+        <div class="side-col">
+          <div id="form-container"></div>
+          <div class="entries panel">
+            <h2>Tree Directory</h2>
+            <p class="hint">All registered persons sorted alphabetically.</p>
+            <div id="entries-list-container"></div>
+          </div>
+        </div>
+        <div class="main-col">
+          <div class="canvas-panel">
+            <div class="legend-row">
+              <div id="legend-container" class="legend"></div>
+              <div class="zoom-controls no-print">
+                <button class="btn-refresh" onclick="changeZoom(-0.1)">-</button>
+                <span id="zoom-level">100%</span>
+                <button class="btn-refresh" onclick="changeZoom(0.1)">+</button>
+                <button class="btn-refresh" onclick="resetZoom()">Reset</button>
+                <button class="btn-print" onclick="window.print()">Print</button>
+              </div>
+            </div>
+            <p class="print-hint no-print">Tip: Click any box to edit. Click photos to expand.</p>
+            <div class="canvas-inner" id="canvas-inner"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderForm();
+  renderEntriesList();
+  renderTree();
+  updateConnectionBanner();
+}
+
+function changeZoom(delta){
+  zoomLevel = Math.max(0.4, Math.min(2.0, zoomLevel + delta));
+  const zEl = document.getElementById('zoom-level');
+  if(zEl) zEl.innerText = Math.round(zoomLevel * 100) + '%';
   renderTree();
 }
 
-async function refreshFromStorage(){ await loadEntries(); renderAll(); }
-
-function populateParentDropdowns(){
-  const fatherSelect = document.getElementById('f-father-select');
-  const motherSelect = document.getElementById('f-mother-select');
-  if(!fatherSelect || !motherSelect) return;
-  const prevFather = fatherSelect.value, prevMother = motherSelect.value;
-
-  let excluded = new Set();
-  if(editingId){
-    excluded.add(editingId);
-    entries.forEach(e=>{ if(ancestorIdsOf(e.id).has(editingId)) excluded.add(e.id); });
-  }
-  const toOption = e => ({id:e.id, label: fullNameFor(e) + (e.family ? ' ('+e.family+')' : '')});
-  const fatherOptions = entries
-    .filter(e=>!excluded.has(e.id) && e.gender !== 'female')
-    .map(toOption).sort((a,b)=>a.label.localeCompare(b.label));
-  const motherOptions = entries
-    .filter(e=>!excluded.has(e.id) && e.gender !== 'male')
-    .map(toOption).sort((a,b)=>a.label.localeCompare(b.label));
-
-  fatherSelect.innerHTML = '<option value="">— none / unknown —</option>' +
-    fatherOptions.map(o=>'<option value="'+o.id+'">'+esc(o.label)+'</option>').join('');
-  motherSelect.innerHTML = '<option value="">— not in this tree —</option>' +
-    motherOptions.map(o=>'<option value="'+o.id+'">'+esc(o.label)+'</option>').join('');
-
-  if([...fatherSelect.options].some(o=>o.value === prevFather)) fatherSelect.value = prevFather;
-  if([...motherSelect.options].some(o=>o.value === prevMother)) motherSelect.value = prevMother;
+function resetZoom(){
+  zoomLevel = 1;
+  const zEl = document.getElementById('zoom-level');
+  if(zEl) zEl.innerText = '100%';
+  renderTree();
 }
 
-function startEdit(id){
-  const e = getEntryById(id);
-  if(!e) return;
-  editingId = id;
-  populateParentDropdowns();
-  document.getElementById('f-name').value = e.name || '';
-  document.getElementById('f-gender').value = e.gender || '';
-  document.getElementById('f-father-select').value = e.fatherId || '';
-  document.getElementById('f-mother-select').value = e.motherId || '';
-  document.getElementById('f-mother-text').value = e.motherId ? '' : (e.motherText || '');
-  document.getElementById('f-family').value = e.family || '';
-  document.getElementById('f-birth').value = e.birth || '';
-  document.getElementById('f-death').value = e.death || '';
-  pendingPhotoData = e.photo || '';
-  const preview = document.getElementById('photo-preview');
-  if(e.photo){ preview.src = e.photo; preview.style.display = 'block'; }
-  else { preview.style.display = 'none'; }
-  document.getElementById('form-title').textContent = 'Edit ' + (e.name || 'person');
-  document.getElementById('f-submit').textContent = 'Save changes';
-  document.getElementById('f-cancel').style.display = 'inline-block';
-  document.getElementById('f-err').style.display = 'none';
-  document.getElementById('f-name').scrollIntoView({behavior:'smooth', block:'center'});
+function startEdit(entry){
+  editingId = entry.id;
+  pendingPhotoData = entry.photo || '';
+  renderForm();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function startEditById(id){
+  const entry = getEntryById(id);
+  if(entry) startEdit(entry);
 }
 
 function cancelEdit(){
   editingId = null;
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-gender').value = '';
-  document.getElementById('f-mother-select').value = '';
-  document.getElementById('f-mother-text').value = '';
-  document.getElementById('f-father-select').value = '';
-  document.getElementById('f-family').value = '';
-  document.getElementById('f-birth').value = '';
-  document.getElementById('f-death').value = '';
-  document.getElementById('f-photo').value = '';
-  document.getElementById('photo-preview').style.display = 'none';
   pendingPhotoData = '';
-  populateParentDropdowns();
-  document.getElementById('form-title').textContent = 'Add a person';
-  document.getElementById('f-submit').textContent = 'Add to the tree';
-  document.getElementById('f-cancel').style.display = 'none';
-  document.getElementById('f-err').style.display = 'none';
+  renderForm();
 }
 
-function openPinModal(mode){
-  const overlay = document.getElementById('pin-overlay');
-  const title = document.getElementById('pin-title');
-  const msg = document.getElementById('pin-msg');
-  const input = document.getElementById('pin-input');
-  const confirm = document.getElementById('pin-confirm');
-  const err = document.getElementById('pin-err');
-  overlay.dataset.mode = mode;
-  input.value = ''; confirm.value = ''; err.style.display = 'none';
-  if(mode === 'set'){
-    title.textContent = 'Set a removal PIN';
-    msg.textContent = 'Choose a PIN. From now on, removing anyone from the tree requires it — keep it to yourself.';
-    confirm.style.display = 'block';
-  } else {
-    title.textContent = 'Enter the removal PIN';
-    msg.textContent = 'This tree is protected. Enter the PIN to remove this person.';
-    confirm.style.display = 'none';
+async function submitForm(){
+  const nameEl = document.getElementById('f-name');
+  const errName = document.getElementById('err-name');
+  const name = nameEl ? nameEl.value.trim() : '';
+
+  if(!name){
+    if(errName) errName.style.display = 'block';
+    return;
   }
-  overlay.style.display = 'flex';
-  input.focus();
-}
-function closePinModal(){
-  document.getElementById('pin-overlay').style.display = 'none';
-  pendingDeleteId = null;
-}
-async function performDelete(id){
-  entries = entries.filter(e=>e.id !== id);
-  entries.forEach(e=>{
-    if(e.fatherId === id) e.fatherId = null;
-    if(e.motherId === id) e.motherId = null;
-  });
+  if(errName) errName.style.display = 'none';
+
+  const gender = document.getElementById('f-gender').value || null;
+  const family = document.getElementById('f-family').value.trim();
+  const fatherId = document.getElementById('f-father').value || null;
+  const motherId = document.getElementById('f-mother').value || null;
+  const motherText = document.getElementById('f-mother-text').value.trim();
+  const birth = document.getElementById('f-birth').value.trim();
+  const death = document.getElementById('f-death').value.trim();
+
+  let photo = pendingPhotoData;
+  if(editingId && !photo){
+    const existing = getEntryById(editingId);
+    if(existing) photo = existing.photo || '';
+  }
+
+  if(editingId){
+    const index = entries.findIndex(e => e.id === editingId);
+    if(index !== -1){
+      entries[index] = {
+        ...entries[index],
+        name, gender, family, fatherId, motherId, motherText, birth, death, photo
+      };
+    }
+  } else {
+    const newId = 'id-' + simpleHash(Date.now() + '-' + Math.random());
+    entries.push({
+      id: newId,
+      name, gender, family, fatherId, motherId, motherText, birth, death, photo
+    });
+  }
+
+  editingId = null;
+  pendingPhotoData = '';
   await saveEntries();
   renderAll();
 }
 
-function renderApp(){
-  const app = document.getElementById('app');
-  app.classList.remove('loading');
-  app.innerHTML =
-    '<div class="layout"><div class="side-col">'
-    + '<div class="panel no-print"><h2 id="form-title">Add a person</h2>'
-    + '<p class="hint">Pick this person\'s father and mother from the list of people already recorded. If a parent isn\'t listed yet, add them first as their own entry (leave their own father/mother blank if unknown), then come back and select them here.</p>'
-    + '<label class="req">First name</label><input id="f-name" placeholder="e.g. Mohammed">'
-    + '<label class="req">Gender</label><select id="f-gender"><option value="">Select…</option><option value="male">Male</option><option value="female">Female</option></select>'
-    + '<label>Father</label><select id="f-father-select"></select>'
-    + '<label>Mother</label><select id="f-mother-select"></select>'
-    + '<input id="f-mother-text" placeholder="Or type her name if she isn\'t in this tree" style="margin-top:8px;">'
-    + '<p class="field-hint">Pick her from the list only if she\'s a blood member of this family (like a daughter who married out). Otherwise just type her name — she\'ll show as a label on her child\'s card.</p>'
-    + '<label>Family name</label><input id="f-family" placeholder="e.g. Al-Ismaily">'
-    + '<div class="row2"><div><label>Date of birth</label><input id="f-birth" type="date"></div>'
-    + '<div><label>Date of death</label><input id="f-death" type="date"></div></div>'
-    + '<label>Photo</label><input id="f-photo" type="file" accept="image/*">'
-    + '<img id="photo-preview" class="photo-preview">'
-    + '<div class="err" id="f-err"></div>'
-    + '<div class="form-actions"><button class="btn-primary" id="f-submit">Add to the tree</button>'
-    + '<button class="btn-ghost" id="f-cancel" style="display:none;">Cancel edit</button></div>'
-    + '</div>'
-    + '<div class="panel entries"><h2>Everyone recorded</h2><p class="hint no-print">Removing someone requires the tree\'s PIN.</p><div id="entry-list"></div></div>'
-    + '</div>'
-    + '<div class="canvas-panel"><div class="legend-row"><div class="legend" id="legend"></div>'
-    + '<div class="no-print zoom-controls"><button class="btn-refresh" id="zoom-out">\u2212</button><span id="zoom-level">100%</span><button class="btn-refresh" id="zoom-in">+</button><button class="btn-refresh" id="zoom-reset">reset</button> <button class="btn-print" id="print-btn">print</button> <button class="btn-refresh" id="refresh-btn">refresh</button> <button class="btn-refresh" id="export-btn">export</button> <button class="btn-refresh" id="import-btn">import</button><input type="file" id="import-file" accept="application/json" style="display:none;"> <button class="btn-refresh" id="change-pins-btn">change PINs</button></div></div>'
-    + '<p class="print-hint no-print" id="print-hint">If "print" doesn\'t open a dialog, use your browser\'s own print shortcut (Ctrl/Cmd+P) instead.</p>'
-    + '<div class="canvas-inner" id="canvas-inner"></div></div>'
-    + '</div>';
+function promptDelete(id){
+  pendingDeleteId = id;
+  const overlay = document.getElementById('pin-overlay');
+  const title = document.getElementById('pin-title');
+  const msg = document.getElementById('pin-msg');
+  const confirmInput = document.getElementById('pin-confirm');
+  const pinErr = document.getElementById('pin-err');
+  
+  if(pinErr) pinErr.style.display = 'none';
+  document.getElementById('pin-input').value = '';
+  if(confirmInput) confirmInput.value = '';
 
-  document.getElementById('f-father-select').addEventListener('change', (ev)=>{
-    const familyField = document.getElementById('f-family');
-    if(!familyField.value.trim() && ev.target.value){
-      const father = getEntryById(ev.target.value);
-      if(father && father.family) familyField.value = father.family;
-    }
-  });
-  document.getElementById('f-mother-select').addEventListener('change', (ev)=>{
-    if(ev.target.value){ document.getElementById('f-mother-text').value = ''; }
-  });
+  if(!adminPinHash){
+    if(title) title.innerText = 'Set Removal PIN';
+    if(msg) msg.innerText = 'Choose a PIN to protect record deletions.';
+    if(confirmInput) confirmInput.style.display = 'block';
+  } else {
+    if(title) title.innerText = 'Enter Removal PIN';
+    if(msg) msg.innerText = 'Please enter the removal PIN to delete this entry.';
+    if(confirmInput) confirmInput.style.display = 'none';
+  }
 
-  document.getElementById('f-photo').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0];
-    if(!file) return;
-    try{
-      pendingPhotoData = await compressImage(file);
-      const preview = document.getElementById('photo-preview');
-      preview.src = pendingPhotoData;
-      preview.style.display = 'block';
-    }catch(e){
-      document.getElementById('f-err').textContent = "Couldn't read that photo. Try a different file.";
-      document.getElementById('f-err').style.display = 'block';
-    }
-  });
+  if(overlay) overlay.style.display = 'flex';
+}
 
-  document.getElementById('f-submit').addEventListener('click', async ()=>{
-    const name = document.getElementById('f-name').value.trim();
-    const gender = document.getElementById('f-gender').value || null;
-    const fatherId = document.getElementById('f-father-select').value || null;
-    const motherSelectVal = document.getElementById('f-mother-select').value || null;
-    const motherTextVal = document.getElementById('f-mother-text').value.trim();
-    let family = document.getElementById('f-family').value.trim();
-    const birth = document.getElementById('f-birth').value;
-    const death = document.getElementById('f-death').value;
-    const err = document.getElementById('f-err');
+async function handlePinSubmit(){
+  const pinInput = document.getElementById('pin-input').value;
+  const confirmInput = document.getElementById('pin-confirm').value;
+  const pinErr = document.getElementById('pin-err');
 
-    if(!name){ err.textContent = 'Enter a name first.'; err.style.display = 'block'; return; }
-    if(!gender){ err.textContent = 'Select a gender — it keeps the father/mother lists accurate.'; err.style.display = 'block'; return; }
-    if(birth && death && death < birth){ err.textContent = 'Date of death is before date of birth.'; err.style.display = 'block'; return; }
-    err.style.display = 'none';
-
-    const motherId = motherSelectVal || null;
-    const motherText = motherId ? '' : motherTextVal;
-
-    if(!family){
-      if(fatherId){ const f = getEntryById(fatherId); if(f && f.family) family = f.family; }
-      else if(motherId){ const m = getEntryById(motherId); if(m && m.family) family = m.family; }
-    }
-
-    await loadEntries();
-    if(usingSeedFallback){
-      err.textContent = "Couldn't confirm the tree's current data just now — to avoid accidentally overwriting anyone, please wait a moment and try again.";
-      err.style.display = 'block';
+  if(!adminPinHash){
+    if(!pinInput){
+      if(pinErr){ pinErr.innerText = 'PIN cannot be empty.'; pinErr.style.display = 'block'; }
       return;
     }
-    if(editingId){
-      const idx = entries.findIndex(e=>e.id === editingId);
-      if(idx !== -1){
-        entries[idx] = {...entries[idx], name, gender, fatherId, motherId, motherText, family, birth, death, photo: pendingPhotoData};
-      }
-    } else {
-      entries.push({
-        id: Date.now().toString(36)+Math.random().toString(36).slice(2,7),
-        name, gender, fatherId, motherId, motherText, family, birth, death, photo: pendingPhotoData
-      });
+    if(pinInput !== confirmInput){
+      if(pinErr){ pinErr.innerText = 'PINs do not match.'; pinErr.style.display = 'block'; }
+      return;
     }
-    await saveEntries();
-    cancelEdit();
-    renderAll();
+    adminPinHash = simpleHash(pinInput);
+    await saveAdmin(adminPinHash);
+    executeDelete();
+  } else {
+    if(simpleHash(pinInput) === adminPinHash){
+      executeDelete();
+    } else {
+      if(pinErr){ pinErr.innerText = 'Incorrect PIN.'; pinErr.style.display = 'block'; }
+    }
+  }
+}
+
+async function executeDelete(){
+  if(!pendingDeleteId) return;
+  
+  entries = entries.filter(e => e.id !== pendingDeleteId);
+  entries.forEach(e => {
+    if(e.fatherId === pendingDeleteId) e.fatherId = null;
+    if(e.motherId === pendingDeleteId) e.motherId = null;
   });
 
-  document.getElementById('f-cancel').addEventListener('click', cancelEdit);
+  pendingDeleteId = null;
+  document.getElementById('pin-overlay').style.display = 'none';
+  
+  if(editingId === pendingDeleteId) cancelEdit();
+  
+  await saveEntries();
+  renderAll();
+}
 
-  document.getElementById('zoom-in').addEventListener('click', ()=>{
-    zoomLevel = Math.min(3, zoomLevel * 1.2);
-    renderTree();
+document.addEventListener('DOMContentLoaded', async ()=>{
+  document.getElementById('pin-cancel').addEventListener('click', ()=>{
+    document.getElementById('pin-overlay').style.display = 'none';
+    pendingDeleteId = null;
   });
-  document.getElementById('zoom-out').addEventListener('click', ()=>{
-    zoomLevel = Math.max(0.3, zoomLevel / 1.2);
-    renderTree();
-  });
-  document.getElementById('zoom-reset').addEventListener('click', ()=>{
-    zoomLevel = 1;
-    renderTree();
-  });
-
-  document.getElementById('export-btn').addEventListener('click', async ()=>{
-    await loadEntries();
-    const blob = new Blob([JSON.stringify({entries, exportedAt: new Date().toISOString()}, null, 2)], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'family-tree-backup-' + new Date().toISOString().slice(0,10) + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
-
-  document.getElementById('import-btn').addEventListener('click', ()=>{
-    document.getElementById('import-file').click();
-  });
-  document.getElementById('import-file').addEventListener('change', (ev)=>{
-    const file = ev.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = async ()=>{
-      try{
-        const parsed = JSON.parse(reader.result);
-        const incoming = Array.isArray(parsed) ? parsed : (parsed.entries || []);
-        if(!Array.isArray(incoming)) throw new Error('Unrecognized file format');
-        const confirmMsg = 'Import ' + incoming.length + ' people from this backup? This replaces everyone currently in the tree.';
-        if(!window.confirm(confirmMsg)) return;
-        entries = incoming;
-        await saveEntries();
-        renderAll();
-        alert('Import complete.');
-      }catch(e){
-        alert("Couldn't read that file — make sure it's a backup exported from this tree.");
-      }
-      ev.target.value = '';
-    };
-    reader.readAsText(file);
-  });
-
-  document.getElementById('refresh-btn').addEventListener('click', async (ev)=>{
-    const btn = ev.currentTarget;
-    const original = btn.textContent;
-    btn.textContent = '…';
-    btn.disabled = true;
-    await refreshFromStorage();
-    btn.textContent = 'updated';
-    setTimeout(()=>{ btn.textContent = original; btn.disabled = false; }, 1200);
-  });
-  document.getElementById('print-btn').addEventListener('click', ()=>{
-    try{ window.print(); }
-    catch(e){ }
-  });
+  
+  document.getElementById('pin-submit').addEventListener('click', handlePinSubmit);
 
   document.getElementById('photo-lightbox').addEventListener('click', ()=>{
     document.getElementById('photo-lightbox').style.display = 'none';
   });
 
-  document.getElementById('change-pins-btn').addEventListener('click', ()=>{
-    document.getElementById('cp-which').value = 'access';
-    document.getElementById('cp-current').value = '';
-    document.getElementById('cp-new').value = '';
-    document.getElementById('cp-new-confirm').value = '';
-    document.getElementById('cp-err').style.display = 'none';
-    document.getElementById('change-pins-overlay').style.display = 'flex';
-  });
-  document.getElementById('cp-cancel').addEventListener('click', ()=>{
-    document.getElementById('change-pins-overlay').style.display = 'none';
-  });
-  document.getElementById('cp-submit').addEventListener('click', async ()=>{
-    const which = document.getElementById('cp-which').value;
-    const current = document.getElementById('cp-current').value.trim();
-    const newPin = document.getElementById('cp-new').value.trim();
-    const confirmPin = document.getElementById('cp-new-confirm').value.trim();
-    const err = document.getElementById('cp-err');
-    const currentHash = which === 'access' ? accessPinHash : adminPinHash;
-    if(!currentHash){ err.textContent = 'No PIN has been set yet for this — nothing to change.'; err.style.display = 'block'; return; }
-    if(simpleHash(current) !== currentHash){ err.textContent = 'Current PIN is incorrect.'; err.style.display = 'block'; return; }
-    if(newPin.length < 4){ err.textContent = 'New PIN must be at least 4 characters.'; err.style.display = 'block'; return; }
-    if(newPin !== confirmPin){ err.textContent = "New PINs don't match."; err.style.display = 'block'; return; }
-    const newHash = simpleHash(newPin);
-    if(which === 'access'){
-      await saveAccessPin(newHash);
-      accessPinHash = newHash;
-      localStorage.setItem(ACCESS_TOKEN_KEY, newHash);
-    } else {
-      await saveAdmin(newHash);
-      adminPinHash = newHash;
-    }
-    document.getElementById('change-pins-overlay').style.display = 'none';
-    alert('PIN changed.' + (which === 'access' ? ' Everyone else will need the new PIN next time they open the tree.' : ''));
-  });
-
-  document.getElementById('pin-cancel').addEventListener('click', closePinModal);
-  document.getElementById('pin-submit').addEventListener('click', async ()=>{
-    const mode = document.getElementById('pin-overlay').dataset.mode;
-    const pin = document.getElementById('pin-input').value.trim();
-    const err = document.getElementById('pin-err');
-    if(mode === 'set'){
-      const confirmPin = document.getElementById('pin-confirm').value.trim();
-      if(pin.length < 4){ err.textContent = 'Use at least 4 characters.'; err.style.display = 'block'; return; }
-      if(pin !== confirmPin){ err.textContent = "PINs don't match."; err.style.display = 'block'; return; }
-      const hash = simpleHash(pin);
-      adminPinHash = hash;
-      await saveAdmin(hash);
-    } else {
-      const hash = simpleHash(pin);
-      if(hash !== adminPinHash){ err.textContent = 'Incorrect PIN.'; err.style.display = 'block'; return; }
-    }
-    const id = pendingDeleteId;
-    closePinModal();
-    if(id) await performDelete(id);
-  });
-
-  renderAll();
-  updateConnectionBanner();
-  startRealtimeSync();
-}
-
-window.addEventListener('beforeprint', ()=>{
-  const layout = document.querySelector('.layout');
-  const canvasPanel = document.querySelector('.canvas-panel');
-  const sideCol = document.querySelector('.side-col');
-  if(layout && canvasPanel && sideCol) layout.insertBefore(canvasPanel, sideCol);
-});
-window.addEventListener('afterprint', ()=>{
-  const layout = document.querySelector('.layout');
-  const canvasPanel = document.querySelector('.canvas-panel');
-  const sideCol = document.querySelector('.side-col');
-  if(layout && canvasPanel && sideCol) layout.insertBefore(sideCol, canvasPanel);
-});
-
-const ACCESS_TOKEN_KEY = 'family-tree-access-token';
-
-function renderAccessGate(mode, currentAccessPinHash){
-  const app = document.getElementById('app');
-  app.classList.remove('loading');
-  const isSet = mode === 'set';
-  app.innerHTML =
-    '<div class="panel" style="max-width:360px;margin:60px auto;">'
-    + '<h2>' + (isSet ? 'Set the family PIN' : 'Enter the family PIN') + '</h2>'
-    + '<p class="hint">' + (isSet
-        ? 'No one has set an access PIN for this tree yet. Choose one now, then share it privately with the family members you want to have access.'
-        : 'This tree is protected. Ask whoever shared this link with you for the PIN.') + '</p>'
-    + '<label>PIN</label><input id="gate-pin" type="password">'
-    + (isSet ? '<label>Confirm PIN</label><input id="gate-pin-confirm" type="password">' : '')
-    + '<div class="err" id="gate-err"></div>'
-    + '<button class="btn-primary" id="gate-submit">' + (isSet ? 'Set PIN and continue' : 'Continue') + '</button>'
-    + '</div>';
-
-  document.getElementById('gate-submit').addEventListener('click', async ()=>{
-    const pin = document.getElementById('gate-pin').value.trim();
-    const err = document.getElementById('gate-err');
-    if(isSet){
-      const confirmPin = document.getElementById('gate-pin-confirm').value.trim();
-      if(pin.length < 4){ err.textContent = 'Use at least 4 characters.'; err.style.display = 'block'; return; }
-      if(pin !== confirmPin){ err.textContent = "PINs don't match."; err.style.display = 'block'; return; }
-      const hash = simpleHash(pin);
-      await saveAccessPin(hash);
-      accessPinHash = hash;
-      localStorage.setItem(ACCESS_TOKEN_KEY, hash);
-      renderApp();
-    } else {
-      const hash = simpleHash(pin);
-      if(hash !== currentAccessPinHash){ err.textContent = 'Incorrect PIN.'; err.style.display = 'block'; return; }
-      localStorage.setItem(ACCESS_TOKEN_KEY, hash);
-      renderApp();
-    }
-  });
-}
-
-(async function init(){
-  await loadEntries();
   await loadAdmin();
-  accessPinHash = await loadAccessPin();
-  const savedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-  if(!accessPinHash){
-    renderAccessGate('set', null);
-  } else if(savedToken === accessPinHash){
-    renderApp();
-  } else {
-    renderAccessGate('enter', accessPinHash);
-  }
-})();
+  await loadEntries();
+  renderAll();
+  startRealtimeSync();
+});
 </script>
+</body>
+</html>
