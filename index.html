@@ -1,64 +1,3 @@
-function computeLayout(nodes){
-  const depthCache = new Map();
-  function getDepth(key, visiting){
-    if(depthCache.has(key)) return depthCache.get(key);
-    if(visiting.has(key)) return 0;
-    visiting.add(key);
-    const node = nodes.get(key);
-    if(!node.parents.length){ depthCache.set(key,0); return 0; }
-    let maxP = -1;
-    node.parents.forEach(p=>{ if(nodes.has(p)){ maxP = Math.max(maxP, getDepth(p, visiting)); } });
-    const d = maxP + 1;
-    depthCache.set(key, d);
-    return d;
-  }
-  nodes.forEach((n,key)=>getDepth(key, new Set()));
-
-  const levels = {};
-  nodes.forEach((n,key)=>{ const d = depthCache.get(key); (levels[d] = levels[d] || []).push(key); });
-  const maxDepth = Math.max(0, ...Object.keys(levels).map(Number));
-
-  const spacingX = 260, spacingY = 220, nodeW = 200, nodeH = 140;
-  const positions = {};
-
-  // Sort siblings by Parent ID first to avoid crossing branches
-  for(let d=0; d<=maxDepth; d++){
-    const keys = (levels[d] || []).slice();
-    keys.sort((a, b) => {
-      const pA = nodes.get(a).fatherId || nodes.get(a).motherId || '';
-      const pB = nodes.get(b).fatherId || nodes.get(b).motherId || '';
-      if (pA !== pB) return pA.localeCompare(pB);
-      return nodes.get(a).name.localeCompare(nodes.get(b).name);
-    });
-
-    let cursorX = 0;
-    let prevParentKey = undefined;
-    keys.forEach((key)=>{
-      const node = nodes.get(key);
-      const thisParentKey = node.fatherId || node.motherId || null;
-      if(prevParentKey !== undefined && thisParentKey !== prevParentKey){ 
-        cursorX += spacingX * 0.5; // Gap between different family units
-      }
-      positions[key] = {x: cursorX, y: d*spacingY, depth:d};
-      cursorX += spacingX;
-      prevParentKey = thisParentKey;
-    });
-  }
-
-  let widest = 0;
-  for(let d=0; d<=maxDepth; d++){
-    const keys = levels[d] || [];
-    if(keys.length){
-      const last = positions[keys[keys.length-1]].x;
-      widest = Math.max(widest, last);
-    }
-  }
-
-  const width = widest + nodeW + 80;
-  const height = (maxDepth+1)*spacingY + nodeH + 60;
-  return {positions, width, height, nodeW, nodeH};
-}
-
 function renderTree(){
   const nodes = buildGraph();
   const container = document.getElementById('canvas-inner');
@@ -76,7 +15,7 @@ function renderTree(){
   let svg = '';
   let clipIndex = 0;
 
-  // Group children by their common primary parent (fatherId)
+  // Group children by their primary parent ID
   const familyGroups = new Map();
   nodes.forEach((node) => {
     const parentId = node.fatherId || node.motherId;
@@ -86,7 +25,7 @@ function renderTree(){
     }
   });
 
-  // Render group bus lines per parent rather than per individual child
+  // Render connector branches per parent group
   familyGroups.forEach((children, parentId) => {
     const pPos = positions[parentId];
     const parentX = pPos.x + padX + nodeW / 2;
@@ -95,19 +34,19 @@ function renderTree(){
     const childPositions = children.map(c => positions[c.key].x + padX + nodeW / 2);
     const minChildX = Math.min(...childPositions);
     const maxChildX = Math.max(...childPositions);
-    const midY = parentY + 40; // Mid-level horizontal bar height
+    const midY = parentY + 40;
 
     const col = familyColor(nodes.get(parentId).family);
 
-    // Stem from Parent down to connector line
+    // Vertical stem down from parent
     branches += `<path class="branch" d="M ${parentX} ${parentY} L ${parentX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
 
-    // Horizontal bar spanning strictly between the first and last child of THIS parent
+    // Horizontal bar connecting children of this parent
     if (children.length > 1) {
       branches += `<path class="branch" d="M ${minChildX} ${midY} L ${maxChildX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
     }
 
-    // Drop lines from horizontal bar into each child card
+    // Vertical drop lines to each child
     children.forEach((child) => {
       const cX = positions[child.key].x + padX + nodeW / 2;
       const cY = positions[child.key].y + padY;
@@ -115,7 +54,7 @@ function renderTree(){
     });
   });
 
-  // Render Individual Nodes
+  // Render individual node cards
   nodes.forEach((node)=>{
     const pos = positions[node.key];
     const x = pos.x + padX, y = pos.y + padY;
@@ -127,37 +66,37 @@ function renderTree(){
     const lineGap = 16;
 
     const nameStartY = y + 28;
-    const nameSvg = nameLines.map((ln,i)=>'<text class="node-name" x="'+textX+'" y="'+(nameStartY+i*lineGap)+'" font-size="14">'+esc(ln)+'</text>').join('');
-    const afterNameY = nameStartY + (nameLines.length-1)*lineGap;
+    const nameSvg = nameLines.map((ln,i)=>`<text class="node-name" x="${textX}" y="${nameStartY + i * lineGap}" font-size="14">${esc(ln)}</text>`).join('');
+    const afterNameY = nameStartY + (nameLines.length - 1) * lineGap;
     const avatarCy = nameStartY - 14;
     
-    let avatar = '<circle cx="'+(x+16)+'" cy="'+avatarCy+'" r="4" fill="'+col+'"/>';
+    let avatar = `<circle cx="${x + 16}" cy="${avatarCy}" r="4" fill="${col}"/>`;
     if(node.photo){
-      const cid = 'clip'+(clipIndex++);
-      defs += '<clipPath id="'+cid+'"><circle cx="'+(x+18)+'" cy="'+(avatarCy+2)+'" r="14"/></clipPath>';
-      avatar = '<g class="node-photo">'
-        + '<image href="'+node.photo+'" x="'+(x+4)+'" y="'+(avatarCy-10)+'" width="28" height="28" clip-path="url(#'+cid+')" preserveAspectRatio="xMidYMid slice"/>'
-        + '<circle cx="'+(x+18)+'" cy="'+(avatarCy+2)+'" r="14" fill="none" stroke="'+col+'" stroke-width="1.4"/>'
-        + '</g>';
+      const cid = `clip${clipIndex++}`;
+      defs += `<clipPath id="${cid}"><circle cx="${x + 18}" cy="${avatarCy + 2}" r="14"/></clipPath>`;
+      avatar = `<g class="node-photo">`
+        + `<image href="${node.photo}" x="${x + 4}" y="${avatarCy - 10}" width="28" height="28" clip-path="url(#${cid})" preserveAspectRatio="xMidYMid slice"/>`
+        + `<circle cx="${x + 18}" cy="${avatarCy + 2}" r="14" fill="none" stroke="${col}" stroke-width="1.4"/>`
+        + `</g>`;
     }
 
-    svg += '<g class="fam-node" data-id="'+esc(node.key)+'" style="cursor:pointer">'
-      + '<rect class="node-card" x="'+x+'" y="'+y+'" width="'+nodeW+'" height="'+nodeH+'" rx="10" style="stroke:'+col+'"/>'
+    svg += `<g class="fam-node" data-id="${esc(node.key)}" style="cursor:pointer">`
+      + `<rect class="node-card" x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="10" style="stroke:${col}"/>`
       + avatar
       + nameSvg
-      + '<text class="node-family" x="'+textX+'" y="'+(afterNameY+16)+'" font-size="10.5" fill="'+col+'">'+esc((node.family || 'unrecorded').toUpperCase())+'</text>';
+      + `<text class="node-family" x="${textX}" y="${afterNameY + 16}" font-size="10.5" fill="${col}">${esc((node.family || 'unrecorded').toUpperCase())}</text>`;
 
     let rowY = afterNameY + 32;
     if(motherLines.length){
       motherLines.forEach((ln,i)=>{
-        svg += '<text class="node-mother" x="'+textX+'" y="'+(rowY+i*13)+'" font-size="10">'+esc(ln)+'</text>';
+        svg += `<text class="node-mother" x="${textX}" y="${rowY + i * 13}" font-size="10">${esc(ln)}</text>`;
       });
-      rowY += motherLines.length*13 + 3;
+      rowY += motherLines.length * 13 + 3;
     }
     if(life){
-      svg += '<text class="node-dates" x="'+textX+'" y="'+rowY+'" font-size="10">'+esc(life)+'</text>';
+      svg += `<text class="node-dates" x="${textX}" y="${rowY}" font-size="10">${esc(life)}</text>`;
     }
-    svg += '</g>';
+    svg += `</g>`;
   });
 
   const containerWidth = container.clientWidth || width;
@@ -166,5 +105,5 @@ function renderTree(){
   const renderedWidth = Math.round(width * finalScale);
   const renderedHeight = Math.round(height * finalScale);
 
-  container.innerHTML = '<svg viewBox="0 0 '+width+' '+height+'" style="display:block;width:'+renderedWidth+'px;height:'+renderedHeight+'px"><defs>'+defs+'</defs>'+branches+svg+'</svg>';
+  container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" style="display:block;width:${renderedWidth}px;height:${renderedHeight}px"><defs>${defs}</defs>${branches}${svg}</svg>`;
 }
