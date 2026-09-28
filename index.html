@@ -2,25 +2,225 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Family Tree</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Tree Canvas</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    #canvas-inner {
+      width: 100%;
+      min-height: 80vh;
+      overflow: auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .empty-canvas {
+      padding: 40px;
+      text-align: center;
+      color: #64748b;
+    }
+    .node-card {
+      fill: #ffffff;
+      stroke-width: 2px;
+      transition: all 0.2s ease;
+    }
+    .fam-node:hover .node-card {
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
+    }
+    .node-name {
+      font-weight: 600;
+      fill: #1e293b;
+    }
+    .node-family {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .node-mother, .node-dates {
+      fill: #64748b;
+    }
+    .branch {
+      stroke-width: 2px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  </style>
 </head>
 <body>
 
-  <!-- The canvas container where the tree is drawn -->
   <div id="canvas-inner"></div>
 
-  <!-- JavaScript MUST go inside script tags -->
   <script>
-    function renderTree(){
+    // Global scale state
+    let zoomLevel = 1;
+
+    // Helper functions
+    function esc(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function wrapName(text, maxChars) {
+      if (!text) return [];
+      if (text.length <= maxChars) return [text];
+      const words = text.split(' ');
+      const lines = [];
+      let current = words[0];
+      for (let i = 1; i < words.length; i++) {
+        if ((current + ' ' + words[i]).length <= maxChars) {
+          current += ' ' + words[i];
+        } else {
+          lines.push(current);
+          current = words[i];
+        }
+      }
+      lines.push(current);
+      return lines;
+    }
+
+    function familyColor(fam) {
+      const colors = {
+        'default': '#3b82f6',
+        'smith': '#10b981',
+        'johnson': '#8b5cf6',
+        'williams': '#f59e0b'
+      };
+      return colors[(fam || '').toLowerCase()] || colors['default'];
+    }
+
+    function lifespan(node) {
+      if (node.birth || node.death) {
+        return `${node.birth || '?'} - ${node.death || ''}`;
+      }
+      return '';
+    }
+
+    function renderLegend(nodes) {
+      // Stub function for legend rendering
+    }
+
+    // Graph definition (Replace this with your actual dataset builder)
+    function buildGraph() {
+      const nodes = new Map();
+      
+      nodes.set('p1', {
+        key: 'p1',
+        displayName: 'John Smith',
+        family: 'smith',
+        fatherId: null,
+        motherId: null,
+        parents: [],
+        birth: '1940',
+        death: '2010'
+      });
+
+      nodes.set('c1', {
+        key: 'c1',
+        displayName: 'Robert Smith',
+        family: 'smith',
+        fatherId: 'p1',
+        motherId: null,
+        parents: ['p1'],
+        motherText: 'Mary Davis',
+        birth: '1968'
+      });
+
+      nodes.set('c2', {
+        key: 'c2',
+        displayName: 'Alice Smith',
+        family: 'smith',
+        fatherId: 'p1',
+        motherId: null,
+        parents: ['p1'],
+        motherText: 'Mary Davis',
+        birth: '1972'
+      });
+
+      return nodes;
+    }
+
+    // Fixed layout calculation: Clusters siblings and creates clean family spacing
+    function computeLayout(nodes) {
+      const depthCache = new Map();
+      function getDepth(key, visiting) {
+        if (depthCache.has(key)) return depthCache.get(key);
+        if (visiting.has(key)) return 0;
+        visiting.add(key);
+        const node = nodes.get(key);
+        if (!node || !node.parents.length) { depthCache.set(key, 0); return 0; }
+        let maxP = -1;
+        node.parents.forEach(p => { if (nodes.has(p)) { maxP = Math.max(maxP, getDepth(p, visiting)); } });
+        const d = maxP + 1;
+        depthCache.set(key, d);
+        return d;
+      }
+      nodes.forEach((n, key) => getDepth(key, new Set()));
+
+      const levels = {};
+      nodes.forEach((n, key) => { const d = depthCache.get(key); (levels[d] = levels[d] || []).push(key); });
+      const maxDepth = Math.max(0, ...Object.keys(levels).map(Number));
+
+      const spacingX = 240, spacingY = 200, nodeW = 200, nodeH = 130;
+      const positions = {};
+
+      for (let d = 0; d <= maxDepth; d++) {
+        const keys = (levels[d] || []).slice();
+        keys.sort((a, b) => {
+          const pA = nodes.get(a).fatherId || nodes.get(a).motherId || '';
+          const pB = nodes.get(b).fatherId || nodes.get(b).motherId || '';
+          if (pA !== pB) return pA.localeCompare(pB);
+          return nodes.get(a).displayName.localeCompare(nodes.get(b).displayName);
+        });
+
+        let cursorX = 0;
+        let prevParentKey = undefined;
+        keys.forEach((key) => {
+          const node = nodes.get(key);
+          const thisParentKey = node.fatherId || node.motherId || null;
+          if (prevParentKey !== undefined && thisParentKey !== prevParentKey) { 
+            cursorX += spacingX * 0.4;
+          }
+          positions[key] = { x: cursorX, y: d * spacingY, depth: d };
+          cursorX += spacingX;
+          prevParentKey = thisParentKey;
+        });
+      }
+
+      let widest = 0;
+      for (let d = 0; d <= maxDepth; d++) {
+        const keys = levels[d] || [];
+        if (keys.length) {
+          const last = positions[keys[keys.length - 1]].x;
+          widest = Math.max(widest, last);
+        }
+      }
+
+      const width = widest + nodeW + 80;
+      const height = (maxDepth + 1) * spacingY + nodeH + 60;
+      return { positions, width, height, nodeW, nodeH };
+    }
+
+    // Render tree function with fixes for lines & template literal syntax
+    function renderTree() {
       const nodes = buildGraph();
       const container = document.getElementById('canvas-inner');
-      if(!container) return;
-      if(nodes.size === 0){
+      if (!container) return;
+      if (nodes.size === 0) {
         container.innerHTML = '<div class="empty-canvas">The tree is empty. Add the first person on the left to begin.</div>';
         renderLegend(nodes);
         return;
       }
-      const {positions, width, height, nodeW, nodeH} = computeLayout(nodes);
+      const { positions, width, height, nodeW, nodeH } = computeLayout(nodes);
       const padX = 40, padY = 30;
 
       let defs = '';
@@ -28,7 +228,7 @@
       let svg = '';
       let clipIndex = 0;
 
-      // Group children by primary parent ID
+      // Group children by primary parent ID to avoid horizontal baseline bar run-ons
       const familyGroups = new Map();
       nodes.forEach((node) => {
         const parentId = node.fatherId || node.motherId;
@@ -47,41 +247,44 @@
         const childPositions = children.map(c => positions[c.key].x + padX + nodeW / 2);
         const minChildX = Math.min(...childPositions);
         const maxChildX = Math.max(...childPositions);
-        const midY = parentY + 40;
+        const midY = parentY + 35;
 
         const col = familyColor(nodes.get(parentId).family);
 
-        branches += `<path class="branch" d="M ${parentX} ${parentY} L ${parentX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
+        // Single vertical drop from parent
+        branches += `<path class="branch" d="M ${parentX} ${parentY} L ${parentX} ${midY}" stroke="${col}" opacity="0.6" fill="none"/>`;
 
+        // Horizontal line strictly bounded by children
         if (children.length > 1) {
-          branches += `<path class="branch" d="M ${minChildX} ${midY} L ${maxChildX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
+          branches += `<path class="branch" d="M ${minChildX} ${midY} L ${maxChildX} ${midY}" stroke="${col}" opacity="0.6" fill="none"/>`;
         }
 
+        // Vertical drop lines into individual child cards
         children.forEach((child) => {
           const cX = positions[child.key].x + padX + nodeW / 2;
           const cY = positions[child.key].y + padY;
-          branches += `<path class="branch" d="M ${cX} ${midY} L ${cX} ${cY}" stroke="${col}" opacity="0.7" fill="none"/>`;
+          branches += `<path class="branch" d="M ${cX} ${midY} L ${cX} ${cY}" stroke="${col}" opacity="0.6" fill="none"/>`;
         });
       });
 
       // Render individual node cards
-      nodes.forEach((node)=>{
+      nodes.forEach((node) => {
         const pos = positions[node.key];
         const x = pos.x + padX, y = pos.y + padY;
         const col = familyColor(node.family);
         const life = lifespan(node);
         const nameLines = wrapName(node.displayName, 22);
-        const textX = node.photo ? x+42 : x+16;
-        const motherLines = node.motherText ? wrapName('m. '+node.motherText, 26) : [];
+        const textX = node.photo ? x + 42 : x + 16;
+        const motherLines = node.motherText ? wrapName('m. ' + node.motherText, 26) : [];
         const lineGap = 16;
 
         const nameStartY = y + 28;
-        const nameSvg = nameLines.map((ln,i)=>`<text class="node-name" x="${textX}" y="${nameStartY + i * lineGap}" font-size="14">${esc(ln)}</text>`).join('');
+        const nameSvg = nameLines.map((ln, i) => `<text class="node-name" x="${textX}" y="${nameStartY + i * lineGap}" font-size="14">${esc(ln)}</text>`).join('');
         const afterNameY = nameStartY + (nameLines.length - 1) * lineGap;
         const avatarCy = nameStartY - 14;
-        
+
         let avatar = `<circle cx="${x + 16}" cy="${avatarCy}" r="4" fill="${col}"/>`;
-        if(node.photo){
+        if (node.photo) {
           const cid = `clip${clipIndex++}`;
           defs += `<clipPath id="${cid}"><circle cx="${x + 18}" cy="${avatarCy + 2}" r="14"/></clipPath>`;
           avatar = `<g class="node-photo">`
@@ -97,13 +300,13 @@
           + `<text class="node-family" x="${textX}" y="${afterNameY + 16}" font-size="10.5" fill="${col}">${esc((node.family || 'unrecorded').toUpperCase())}</text>`;
 
         let rowY = afterNameY + 32;
-        if(motherLines.length){
-          motherLines.forEach((ln,i)=>{
+        if (motherLines.length) {
+          motherLines.forEach((ln, i) => {
             svg += `<text class="node-mother" x="${textX}" y="${rowY + i * 13}" font-size="10">${esc(ln)}</text>`;
           });
           rowY += motherLines.length * 13 + 3;
         }
-        if(life){
+        if (life) {
           svg += `<text class="node-dates" x="${textX}" y="${rowY}" font-size="10">${esc(life)}</text>`;
         }
         svg += `</g>`;
@@ -117,6 +320,11 @@
 
       container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" style="display:block;width:${renderedWidth}px;height:${renderedHeight}px"><defs>${defs}</defs>${branches}${svg}</svg>`;
     }
+
+    // Execute when DOM is fully loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      renderTree();
+    });
   </script>
 </body>
 </html>
