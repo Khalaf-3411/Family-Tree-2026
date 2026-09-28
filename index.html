@@ -1,366 +1,3 @@
-<!DOCTYPE html>
-<!-- build: id-linked-v2 -->
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Family Tree</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#1c1b17;
-    --panel:#221f19;
-    --card:#2b271f;
-    --card-line:#3c3627;
-    --ink:#ece6d4;
-    --ink-dim:#a89e88;
-    --gold:#c9a24b;
-    --danger:#c26a5f;
-  }
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;}
-  .wrap{max-width:1680px;margin:0 auto;padding:40px 28px 80px;position:relative;}
-  .signature{position:absolute;top:40px;right:28px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink);text-align:right;}
-  header{margin-bottom:36px;}
-  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin:0 0 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .badge{font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0;font-size:11.5px;background:#2e2a1c;border:1px solid var(--card-line);color:var(--ink-dim);padding:3px 9px;border-radius:20px;}
-  h1{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;font-size:44px;margin:0 0 8px;color:var(--ink);}
-  .sub{color:var(--ink-dim);font-size:15px;max-width:640px;line-height:1.55;margin:0;}
-  .layout{display:grid;grid-template-columns:340px 1fr;gap:28px;align-items:start;}
-  @media(max-width:900px){
-    .layout{grid-template-columns:1fr;}
-    .signature{position:static;text-align:left;margin-bottom:14px;display:block;}
-  }
-  .panel{background:var(--panel);border:1px solid var(--card-line);border-radius:14px;padding:22px;}
-  .panel h2{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:20px;margin:0 0 4px;color:var(--ink);}
-  .panel .hint{font-size:12.5px;color:var(--ink-dim);margin:0 0 18px;line-height:1.5;}
-  label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-dim);margin:14px 0 6px;}
-  label.req::after{content:" *";color:var(--danger);}
-  input,select{width:100%;background:#171511;border:1px solid var(--card-line);border-radius:8px;color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;padding:10px 12px;outline:none;}
-  input:focus,select:focus{border-color:var(--gold);}
-  input::placeholder{color:#635c4c;}
-  input[type="file"]{padding:8px;font-size:12.5px;}
-  input[type="password"]{letter-spacing:0.2em;}
-  select{cursor:pointer;}
-  .field-hint{font-size:11px;color:var(--ink-dim);margin-top:5px;line-height:1.4;}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .err{font-size:12px;color:var(--danger);margin-top:6px;display:none;}
-  button{font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;border-radius:8px;cursor:pointer;border:1px solid var(--card-line);background:transparent;color:var(--ink);transition:transform .08s ease;}
-  button:active{transform:scale(0.98);}
-  .btn-primary{width:100%;margin-top:18px;padding:11px;background:var(--gold);border-color:var(--gold);color:#241c0c;}
-  .btn-primary:hover{background:#d9b25f;}
-  .btn-ghost{padding:7px 10px;font-size:12px;color:var(--ink-dim);}
-  .btn-ghost:hover{color:var(--danger);border-color:var(--danger);}
-  .btn-refresh{padding:6px 12px;font-size:12px;color:var(--ink-dim);}
-  .btn-refresh:hover{color:var(--gold);border-color:var(--gold);}
-  .entry-actions{display:flex;gap:6px;flex-shrink:0;}
-  .form-actions{display:flex;gap:8px;align-items:center;margin-top:18px;}
-  .form-actions .btn-primary{margin-top:0;flex:1;}
-  .photo-preview{width:52px;height:52px;border-radius:50%;object-fit:cover;margin-top:10px;border:1px solid var(--card-line);display:none;}
-  .entries{margin-top:24px;}
-  .entry-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--card-line);}
-  .entry-row:first-of-type{border-top:none;}
-  .entry-left{display:flex;gap:10px;align-items:flex-start;}
-  .thumb{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--card-line);flex-shrink:0;}
-  .thumb-fallback{width:32px;height:32px;border-radius:50%;border:1px solid var(--card-line);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:14px;flex-shrink:0;}
-  .entry-name{font-size:13.5px;font-weight:600;}
-  .entry-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);margin-top:2px;line-height:1.5;}
-  .empty{font-size:13px;color:var(--ink-dim);padding:8px 0;}
-  .canvas-panel{background:var(--panel);border:1px solid var(--card-line);border-radius:14px;padding:8px;overflow-x:auto;}
-  .canvas-inner{min-height:460px;position:relative;}
-  .legend-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 0;}
-  .legend{display:flex;flex-wrap:wrap;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);}
-  .legend span{display:inline-flex;align-items:center;gap:6px;}
-  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
-  .node-card{fill:var(--card);stroke:var(--card-line);stroke-width:1.2;}
-  .node-name{font-family:'Cormorant Garamond',serif;font-weight:600;fill:var(--ink);}
-  .node-family{font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;}
-  .node-dates{font-family:'IBM Plex Mono',monospace;fill:var(--ink-dim);}
-  .node-mother{font-family:'Inter',sans-serif;font-style:italic;fill:var(--ink-dim);}
-  .branch{fill:none;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;}
-  .empty-canvas{display:flex;align-items:center;justify-content:center;min-height:420px;text-align:center;color:var(--ink-dim);font-size:14px;padding:20px;}
-  .loading{padding:60px;text-align:center;color:var(--ink-dim);font-size:14px;}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,9,6,0.6);align-items:center;justify-content:center;z-index:60;padding:20px;}
-  .modal-box{background:var(--panel);border:1px solid var(--card-line);border-radius:14px;padding:22px;width:320px;max-width:100%;}
-  .modal-box h3{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:19px;margin:0 0 8px;}
-  .modal-box p{font-size:13px;color:var(--ink-dim);line-height:1.5;margin:0 0 14px;}
-  .modal-actions{display:flex;gap:8px;margin-top:14px;}
-  .modal-actions button{flex:1;margin-top:0;}
-  .zoom-controls{display:flex;align-items:center;gap:6px;}
-  #zoom-level{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);min-width:38px;text-align:center;}
-  .print-hint{font-size:11px;color:var(--ink-dim);padding:6px 14px 0;margin:0;text-align:right;}
-  @page{ size: landscape; margin: 10mm; }
-  @media print{
-    :root{ --bg:#ffffff; --panel:#ffffff; --card:#ffffff; --card-line:#333333; --ink:#161514; --ink-dim:#555248; --gold:#8a6a1f; }
-    body{background:#fff;}
-    .no-print{display:none !important;}
-    .wrap{padding:0;max-width:100%;}
-    .layout{display:block;}
-    .canvas-panel{border:none;padding:0;overflow:visible;}
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <p class="signature">Created by<br>Khalaf Mohammed Qassim Al-Ismaily</p>
-  <header>
-    <p class="eyebrow">Living record <span class="badge no-print">Shared &middot; everyone can add</span><span class="badge no-print">PIN-protected removal</span></p>
-    <h1>The family tree</h1>
-    <p class="sub no-print">Pick a person's father and mother from the dropdown lists. If a parent isn't in the tree yet, add them first as their own entry, then select them.</p>
-  </header>
-
-  <div id="conn-error-banner" style="display:none;background:#3a2420;border:1px solid var(--danger);color:#f0c9c2;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;">
-    Couldn't connect to the database right now. Try refreshing the page in a moment.
-  </div>
-
-  <div id="app" class="loading">Opening the record…</div>
-</div>
-
-<div class="modal-overlay" id="pin-overlay">
-  <div class="modal-box">
-    <h3 id="pin-title">Set Removal PIN</h3>
-    <p id="pin-msg">Choose a PIN. Removing anyone from the tree will require it.</p>
-    <input id="pin-input" type="password" placeholder="PIN">
-    <input id="pin-confirm" type="password" placeholder="Confirm PIN" style="margin-top:8px;display:none;">
-    <div class="err" id="pin-err"></div>
-    <div class="modal-actions">
-      <button class="btn-ghost" id="pin-cancel">Cancel</button>
-      <button class="btn-primary" id="pin-submit">Confirm</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="change-pins-overlay">
-  <div class="modal-box" style="width:340px;">
-    <h3>Manage Removal PIN</h3>
-    <p style="font-size:13px;color:var(--ink-dim);margin:0 0 14px;">Enter your current PIN to update it to a new one.</p>
-    <label>Current PIN</label>
-    <input id="cp-current" type="password">
-    <label>New PIN</label>
-    <input id="cp-new" type="password">
-    <label>Confirm New PIN</label>
-    <input id="cp-new-confirm" type="password">
-    <div class="err" id="cp-err"></div>
-    <div class="modal-actions">
-      <button class="btn-ghost" id="cp-cancel">Cancel</button>
-      <button class="btn-primary" id="cp-submit">Update PIN</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="photo-lightbox" style="cursor:zoom-out;">
-  <img id="lightbox-img" style="max-width:90vw;max-height:90vh;border-radius:14px;border:2px solid var(--card-line);">
-</div>
-
-<script>
-const FIREBASE_PROJECT_ID = "family-tree-2026-5f95f";
-const FIREBASE_API_KEY = "AIzaSyC5v2zUEGaxo3yZbAhsBHoVc6JchbfashA";
-const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/'+FIREBASE_PROJECT_ID+'/databases/(default)/documents/familyTree';
-
-async function firestoreGet(docName){
-  const res = await fetch(FIRESTORE_BASE+'/'+docName+'?key='+FIREBASE_API_KEY);
-  if(res.status === 404) return null;
-  if(!res.ok) throw new Error('Firestore GET failed: '+res.status);
-  const json = await res.json();
-  return (json.fields && json.fields.data) ? JSON.parse(json.fields.data.stringValue) : null;
-}
-
-async function firestoreSet(docName, dataValue){
-  const body = { fields: { data: { stringValue: JSON.stringify(dataValue) } } };
-  const res = await fetch(FIRESTORE_BASE+'/'+docName+'?key='+FIREBASE_API_KEY, {
-    method: 'PATCH',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(body)
-  });
-  if(!res.ok) throw new Error('Firestore SET failed: '+res.status);
-}
-
-let entries = [];
-let adminPinHash = null;
-let pendingDeleteId = null;
-let pendingPhotoData = '';
-let editingId = null;
-let zoomLevel = 1;
-let connectionError = false;
-
-const FAMILY_COLORS = ['#c9a24b','#83967a','#b5715f','#6f93a8','#9b83ad','#c48a4c'];
-
-function familyColor(family){
-  const key = (family || 'Unrecorded').trim().toLowerCase();
-  let hash = 0;
-  for(let i=0;i<key.length;i++){ hash = (hash*31 + key.charCodeAt(i)) >>> 0; }
-  return FAMILY_COLORS[hash % FAMILY_COLORS.length];
-}
-
-function esc(s){
-  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-function fmtYear(d){
-  if(!d) return '';
-  const parts = d.split('-');
-  return parts.length===3 ? parts[0] : d;
-}
-
-function lifespan(e){
-  const b = fmtYear(e.birth), dth = fmtYear(e.death);
-  if(!b && !dth) return '';
-  if(b && dth) return 'b. '+b+' \u2013 d. '+dth;
-  return b ? 'b. '+b : 'd. '+dth;
-}
-
-function wrapName(text, maxChars){
-  if(text.length <= maxChars) return [text];
-  const words = text.split(' ');
-  let line1 = '', line2 = '';
-  words.forEach(w=>{
-    if(!line1 || (line1 + ' ' + w).length <= maxChars){ line1 = line1 ? line1+' '+w : w; }
-    else { line2 = line2 ? line2+' '+w : w; }
-  });
-  return line2 ? [line1, line2] : [line1];
-}
-
-function simpleHash(str){
-  let h = 5381;
-  for(let i=0;i<str.length;i++){ h = ((h<<5)+h + str.charCodeAt(i))|0; }
-  return (h>>>0).toString(36);
-}
-
-function getEntryById(id){ return entries.find(e=>e.id===id) || null; }
-
-function fullNameFor(entry){
-  if(!entry) return '';
-  const father = entry.fatherId ? getEntryById(entry.fatherId) : null;
-  const grandfather = father && father.fatherId ? getEntryById(father.fatherId) : null;
-  return [entry.name, father ? father.name : null, grandfather ? grandfather.name : null].filter(Boolean).join(' ');
-}
-
-function motherLabelFor(entry){
-  if(entry.motherId){ return fullNameFor(getEntryById(entry.motherId)); }
-  return entry.motherText || '';
-}
-
-function buildSeedEntries(){
-  const fam = 'Al-Ismaily';
-  const rows = [
-    ['zahor', 'Zahor', null],
-    ['mohammed-zahor', 'Mohammed', 'zahor'],
-    ['ahmed-mohammed-zahor', 'Ahmed', 'mohammed-zahor'],
-    ['salim-ahmed-mohammed', 'Salim', 'ahmed-mohammed-zahor'],
-    ['qassim-salim-ahmed', 'Qassim', 'salim-ahmed-mohammed'],
-    ['sulaiman-qassim-salim', 'Sulaiman', 'qassim-salim-ahmed'],
-    ['nasser-sulaiman-qassim', 'Nasser', 'sulaiman-qassim-salim'],
-    ['salim-nasser-sulaiman', 'Salim', 'nasser-sulaiman-qassim'],
-    ['abdullah-salim-nasser', 'Abdullah', 'salim-nasser-sulaiman'],
-    ['ali-abdullah-salim', 'Ali', 'abdullah-salim-nasser'],
-    ['hamad-abdullah-salim', 'Hamad', 'abdullah-salim-nasser'],
-    ['qassim-abdullah-salim', 'Qassim', 'abdullah-salim-nasser'],
-    ['salim-abdullah-salim', 'Salim', 'abdullah-salim-nasser'],
-    ['mohammed-qassim-abdullah', 'Mohammed', 'qassim-abdullah-salim'],
-    ['salim-qassim-abdullah', 'Salim', 'qassim-abdullah-salim'],
-    ['abdullah-qassim-abdullah', 'Abdullah', 'qassim-abdullah-salim'],
-    ['samir-mohammed-qassim', 'Samir', 'mohammed-qassim-abdullah'],
-    ['qassim-mohammed-qassim', 'Qassim', 'mohammed-qassim-abdullah'],
-    ['khalaf-mohammed-qassim', 'Khalaf', 'mohammed-qassim-abdullah'],
-    ['rashad-mohammed-qassim', 'Rashad', 'mohammed-qassim-abdullah'],
-    ['ahmed-mohammed-qassim', 'Ahmed', 'mohammed-qassim-abdullah'],
-    ['soud-mohammed-qassim', 'Soud', 'mohammed-qassim-abdullah']
-  ];
-  return rows.map(([id, name, fatherId])=>({
-    id: 'seed-'+id, name, gender: 'male', fatherId: fatherId ? 'seed-'+fatherId : null,
-    motherId: null, motherText: '', family: fam, birth: '', death: '', photo: ''
-  }));
-}
-
-async function loadEntries(){
-  try{
-    let fetched = await firestoreGet('entries');
-    if(fetched === null){
-      entries = buildSeedEntries();
-      await saveEntries();
-    } else {
-      entries = fetched;
-    }
-    connectionError = false;
-  } catch(e){
-    console.error('Could not load record', e);
-    connectionError = true;
-    entries = buildSeedEntries();
-  }
-}
-
-async function saveEntries(){
-  try{ await firestoreSet('entries', entries); connectionError = false; }
-  catch(e){ console.error('Could not save record', e); connectionError = true; }
-}
-
-async function loadAdmin(){
-  try{ const data = await firestoreGet('admin'); adminPinHash = data ? (data.pinHash || null) : null; }
-  catch(e){ adminPinHash = null; }
-}
-
-async function saveAdmin(hash){
-  try{ await firestoreSet('admin', {pinHash: hash}); }
-  catch(e){ console.error('Could not save PIN', e); }
-}
-
-function startRealtimeSync(){
-  setInterval(async ()=>{
-    try{
-      const raw = await firestoreGet('entries');
-      if(raw){
-        entries = raw;
-        connectionError = false;
-        renderAll();
-      }
-    }catch(e){ connectionError = true; }
-    updateConnectionBanner();
-  }, 10000);
-}
-
-function updateConnectionBanner(){
-  const banner = document.getElementById('conn-error-banner');
-  if(banner) banner.style.display = connectionError ? 'block' : 'none';
-}
-
-function compressImage(file){
-  return new Promise((resolve, reject)=>{
-    const reader = new FileReader();
-    reader.onload = ()=>{
-      const img = new Image();
-      img.onload = ()=>{
-        const maxDim = 200;
-        let w = img.width, h = img.height;
-        if(w > h){ if(w > maxDim){ h = Math.round(h*maxDim/w); w = maxDim; } }
-        else { if(h > maxDim){ w = Math.round(w*maxDim/h); h = maxDim; } }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.75));
-      };
-      img.onerror = reject;
-      img.src = reader.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function buildGraph(){
-  const nodes = new Map();
-  entries.forEach(e=>{
-    nodes.set(e.id, {
-      key: e.id, name: e.name, family: e.family || '', birth: e.birth || '', death: e.death || '',
-      photo: e.photo || '', motherText: e.motherId ? '' : (e.motherText || ''),
-      fatherId: e.fatherId || null, motherId: e.motherId || null,
-      displayName: fullNameFor(e),
-      parents: [e.fatherId, e.motherId].filter(Boolean)
-    });
-  });
-  return nodes;
-}
-
 function computeLayout(nodes){
   const depthCache = new Map();
   function getDepth(key, visiting){
@@ -368,7 +5,7 @@ function computeLayout(nodes){
     if(visiting.has(key)) return 0;
     visiting.add(key);
     const node = nodes.get(key);
-    if(!node.parents.length){ depthCache.set(key, 0); return 0; }
+    if(!node.parents.length){ depthCache.set(key,0); return 0; }
     let maxP = -1;
     node.parents.forEach(p=>{ if(nodes.has(p)){ maxP = Math.max(maxP, getDepth(p, visiting)); } });
     const d = maxP + 1;
@@ -381,17 +18,27 @@ function computeLayout(nodes){
   nodes.forEach((n,key)=>{ const d = depthCache.get(key); (levels[d] = levels[d] || []).push(key); });
   const maxDepth = Math.max(0, ...Object.keys(levels).map(Number));
 
-  const spacingX = 250, spacingY = 260, nodeW = 200, nodeH = 140;
+  const spacingX = 260, spacingY = 220, nodeW = 200, nodeH = 140;
   const positions = {};
 
+  // Sort siblings by Parent ID first to avoid crossing branches
   for(let d=0; d<=maxDepth; d++){
-    const keys = levels[d] || [];
+    const keys = (levels[d] || []).slice();
+    keys.sort((a, b) => {
+      const pA = nodes.get(a).fatherId || nodes.get(a).motherId || '';
+      const pB = nodes.get(b).fatherId || nodes.get(b).motherId || '';
+      if (pA !== pB) return pA.localeCompare(pB);
+      return nodes.get(a).name.localeCompare(nodes.get(b).name);
+    });
+
     let cursorX = 0;
     let prevParentKey = undefined;
     keys.forEach((key)=>{
       const node = nodes.get(key);
-      const thisParentKey = node.parents[0] || null;
-      if(prevParentKey !== undefined && thisParentKey !== prevParentKey){ cursorX += spacingX * 1.3; }
+      const thisParentKey = node.fatherId || node.motherId || null;
+      if(prevParentKey !== undefined && thisParentKey !== prevParentKey){ 
+        cursorX += spacingX * 0.5; // Gap between different family units
+      }
       positions[key] = {x: cursorX, y: d*spacingY, depth:d};
       cursorX += spacingX;
       prevParentKey = thisParentKey;
@@ -407,15 +54,9 @@ function computeLayout(nodes){
     }
   }
 
-  for(let d=0; d<=maxDepth; d++){
-    const keys = levels[d] || [];
-    if(!keys.length) continue;
-    const levelWidth = positions[keys[keys.length-1]].x;
-    const offset = (widest - levelWidth)/2;
-    keys.forEach(key=>{ positions[key].x += offset; });
-  }
-
-  return {positions, width: widest + nodeW + 100, height: (maxDepth+1)*spacingY + nodeH + 60, nodeW, nodeH};
+  const width = widest + nodeW + 80;
+  const height = (maxDepth+1)*spacingY + nodeH + 60;
+  return {positions, width, height, nodeW, nodeH};
 }
 
 function renderTree(){
@@ -423,73 +64,95 @@ function renderTree(){
   const container = document.getElementById('canvas-inner');
   if(!container) return;
   if(nodes.size === 0){
-    container.innerHTML = '<div class="empty-canvas">The tree is empty. Add a person to start.</div>';
+    container.innerHTML = '<div class="empty-canvas">The tree is empty. Add the first person on the left to begin.</div>';
+    renderLegend(nodes);
     return;
   }
-
   const {positions, width, height, nodeW, nodeH} = computeLayout(nodes);
-  const padX = 50, padY = 40;
+  const padX = 40, padY = 30;
 
   let defs = '';
   let branches = '';
   let svg = '';
   let clipIndex = 0;
-  const photoByIndex = {};
 
-  // Clean orthogonal branch routing
-  nodes.forEach((node)=>{
-    const pos = positions[node.key];
-    const cx = pos.x + padX + nodeW/2, cy = pos.y + padY;
-    const col = familyColor(node.family);
-
-    const validParents = node.parents.filter(p=>positions[p]);
-    if(validParents.length > 0){
-      const primaryParent = positions[validParents[0]];
-      const px = primaryParent.x + padX + nodeW/2;
-      const py = primaryParent.y + padY + nodeH;
-      const midY = py + (cy - py)/2;
-
-      branches += `<path class="branch" d="M ${px} ${py} L ${px} ${midY} L ${cx} ${midY} L ${cx} ${cy}" stroke="${col}" stroke-width="2" opacity="0.75" fill="none"/>`;
+  // Group children by their common primary parent (fatherId)
+  const familyGroups = new Map();
+  nodes.forEach((node) => {
+    const parentId = node.fatherId || node.motherId;
+    if (parentId && positions[parentId]) {
+      if (!familyGroups.has(parentId)) familyGroups.set(parentId, []);
+      familyGroups.get(parentId).push(node);
     }
   });
 
+  // Render group bus lines per parent rather than per individual child
+  familyGroups.forEach((children, parentId) => {
+    const pPos = positions[parentId];
+    const parentX = pPos.x + padX + nodeW / 2;
+    const parentY = pPos.y + padY + nodeH;
+
+    const childPositions = children.map(c => positions[c.key].x + padX + nodeW / 2);
+    const minChildX = Math.min(...childPositions);
+    const maxChildX = Math.max(...childPositions);
+    const midY = parentY + 40; // Mid-level horizontal bar height
+
+    const col = familyColor(nodes.get(parentId).family);
+
+    // Stem from Parent down to connector line
+    branches += `<path class="branch" d="M ${parentX} ${parentY} L ${parentX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
+
+    // Horizontal bar spanning strictly between the first and last child of THIS parent
+    if (children.length > 1) {
+      branches += `<path class="branch" d="M ${minChildX} ${midY} L ${maxChildX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
+    }
+
+    // Drop lines from horizontal bar into each child card
+    children.forEach((child) => {
+      const cX = positions[child.key].x + padX + nodeW / 2;
+      const cY = positions[child.key].y + padY;
+      branches += `<path class="branch" d="M ${cX} ${midY} L ${cX} ${cY}" stroke="${col}" opacity="0.7" fill="none"/>`;
+    });
+  });
+
+  // Render Individual Nodes
   nodes.forEach((node)=>{
     const pos = positions[node.key];
     const x = pos.x + padX, y = pos.y + padY;
     const col = familyColor(node.family);
     const life = lifespan(node);
-    const nameLines = wrapName(node.displayName, 20);
-    const textX = node.photo ? x+44 : x+16;
-    const motherLines = node.motherText ? wrapName('m. '+node.motherText, 24) : [];
+    const nameLines = wrapName(node.displayName, 22);
+    const textX = node.photo ? x+42 : x+16;
+    const motherLines = node.motherText ? wrapName('m. '+node.motherText, 26) : [];
+    const lineGap = 16;
 
-    const nameStartY = y + 26;
-    const nameSvg = nameLines.map((ln,i)=>'<text class="node-name" x="'+textX+'" y="'+(nameStartY+i*16)+'" font-size="14">'+esc(ln)+'</text>').join('');
-    const afterNameY = nameStartY + (nameLines.length-1)*16;
-
-    let avatar = '<circle cx="'+(x+16)+'" cy="'+(y+22)+'" r="4" fill="'+col+'"/>';
+    const nameStartY = y + 28;
+    const nameSvg = nameLines.map((ln,i)=>'<text class="node-name" x="'+textX+'" y="'+(nameStartY+i*lineGap)+'" font-size="14">'+esc(ln)+'</text>').join('');
+    const afterNameY = nameStartY + (nameLines.length-1)*lineGap;
+    const avatarCy = nameStartY - 14;
+    
+    let avatar = '<circle cx="'+(x+16)+'" cy="'+avatarCy+'" r="4" fill="'+col+'"/>';
     if(node.photo){
-      const photoIdx = clipIndex;
       const cid = 'clip'+(clipIndex++);
-      defs += '<clipPath id="'+cid+'"><circle cx="'+(x+20)+'" cy="'+(y+26)+'" r="14"/></clipPath>';
-      avatar = '<g class="node-photo" data-photo-index="'+photoIdx+'" style="cursor:zoom-in">'
-        + '<image href="'+node.photo+'" x="'+(x+6)+'" y="'+(y+12)+'" width="28" height="28" clip-path="url(#'+cid+')" preserveAspectRatio="xMidYMid slice"/>'
-        + '<circle cx="'+(x+20)+'" cy="'+(y+26)+'" r="14" fill="none" stroke="'+col+'" stroke-width="1.5"/>'
+      defs += '<clipPath id="'+cid+'"><circle cx="'+(x+18)+'" cy="'+(avatarCy+2)+'" r="14"/></clipPath>';
+      avatar = '<g class="node-photo">'
+        + '<image href="'+node.photo+'" x="'+(x+4)+'" y="'+(avatarCy-10)+'" width="28" height="28" clip-path="url(#'+cid+')" preserveAspectRatio="xMidYMid slice"/>'
+        + '<circle cx="'+(x+18)+'" cy="'+(avatarCy+2)+'" r="14" fill="none" stroke="'+col+'" stroke-width="1.4"/>'
         + '</g>';
-      photoByIndex[photoIdx] = node.photo;
     }
 
     svg += '<g class="fam-node" data-id="'+esc(node.key)+'" style="cursor:pointer">'
       + '<rect class="node-card" x="'+x+'" y="'+y+'" width="'+nodeW+'" height="'+nodeH+'" rx="10" style="stroke:'+col+'"/>'
       + avatar
       + nameSvg
-      + '<text class="node-family" x="'+textX+'" y="'+(afterNameY+18)+'" font-size="10.5" fill="'+col+'">'+esc((node.family || 'unrecorded').toUpperCase())+'</text>';
-    
+      + '<text class="node-family" x="'+textX+'" y="'+(afterNameY+16)+'" font-size="10.5" fill="'+col+'">'+esc((node.family || 'unrecorded').toUpperCase())+'</text>';
+
     let rowY = afterNameY + 32;
     if(motherLines.length){
       motherLines.forEach((ln,i)=>{
-        svg += '<text class="node-mother" x="'+textX+'" y="'+(rowY+i*12)+'" font-size="10">'+esc(ln)+'</text>';
+        svg += '<text class="node-mother" x="'+textX+'" y="'+(rowY+i*13)+'" font-size="10">'+esc(ln)+'</text>';
       });
-      rowY += motherLines.length*12 + 2;
+      rowY += motherLines.length*13 + 3;
     }
     if(life){
       svg += '<text class="node-dates" x="'+textX+'" y="'+rowY+'" font-size="10">'+esc(life)+'</text>';
@@ -497,348 +160,11 @@ function renderTree(){
     svg += '</g>';
   });
 
-  const finalWidth = Math.round(width * zoomLevel);
-  const finalHeight = Math.round(height * zoomLevel);
-  container.innerHTML = '<svg viewBox="0 0 '+width+' '+height+'" style="display:block;width:'+finalWidth+'px;height:'+finalHeight+'px"><defs>'+defs+'</defs>'+branches+svg+'</svg>';
+  const containerWidth = container.clientWidth || width;
+  const fitScale = containerWidth / width;
+  const finalScale = fitScale * zoomLevel;
+  const renderedWidth = Math.round(width * finalScale);
+  const renderedHeight = Math.round(height * finalScale);
 
-  container.querySelectorAll('.fam-node').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const entry = getEntryById(el.getAttribute('data-id'));
-      if(entry) startEdit(entry);
-    });
-  });
-
-  container.querySelectorAll('.node-photo').forEach(el=>{
-    el.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const idx = el.getAttribute('data-photo-index');
-      if(photoByIndex[idx]){
-        document.getElementById('lightbox-img').src = photoByIndex[idx];
-        document.getElementById('photo-lightbox').style.display = 'flex';
-      }
-    });
-  });
-
-  renderLegend(nodes);
+  container.innerHTML = '<svg viewBox="0 0 '+width+' '+height+'" style="display:block;width:'+renderedWidth+'px;height:'+renderedHeight+'px"><defs>'+defs+'</defs>'+branches+svg+'</svg>';
 }
-
-function renderLegend(nodes){
-  const legendEl = document.getElementById('legend-container');
-  if(!legendEl) return;
-  const families = new Set();
-  nodes.forEach(n => { if(n.family) families.add(n.family); });
-  if(families.size === 0){ legendEl.innerHTML = ''; return; }
-  let html = '<span><strong>Families:</strong></span>';
-  families.forEach(fam => {
-    html += '<span><i style="background:'+familyColor(fam)+'"></i>'+esc(fam)+'</span>';
-  });
-  legendEl.innerHTML = html;
-}
-
-function renderForm(){
-  const isEditing = !!editingId;
-  const entry = isEditing ? getEntryById(editingId) : null;
-  
-  const maleOptions = entries
-    .filter(e => e.id !== editingId)
-    .map(e => '<option value="'+esc(e.id)+'" '+(entry && entry.fatherId === e.id ? 'selected' : '')+'>'+esc(fullNameFor(e))+'</option>')
-    .join('');
-
-  const femaleOptions = entries
-    .filter(e => e.id !== editingId)
-    .map(e => '<option value="'+esc(e.id)+'" '+(entry && entry.motherId === e.id ? 'selected' : '')+'>'+esc(fullNameFor(e))+'</option>')
-    .join('');
-
-  const html = `
-    <div class="panel">
-      <h2>${isEditing ? 'Edit person' : 'Add a person'}</h2>
-      <p class="hint">${isEditing ? 'Update details or reassign parents.' : 'Enter personal details and choose parents.'}</p>
-      
-      <label class="req">First Name</label>
-      <input id="f-name" type="text" placeholder="e.g. Khalaf" value="${entry ? esc(entry.name) : ''}">
-      <div class="err" id="err-name">Please enter a first name.</div>
-
-      <label>Family Name / Tribe</label>
-      <input id="f-family" type="text" placeholder="e.g. Al-Ismaily" value="${entry ? esc(entry.family) : ''}">
-
-      <label>Father</label>
-      <select id="f-father">
-        <option value="">-- Select Father --</option>
-        ${maleOptions}
-      </select>
-
-      <label>Mother</label>
-      <select id="f-mother">
-        <option value="">-- Select Mother --</option>
-        ${femaleOptions}
-      </select>
-      <div class="field-hint">If mother isn't in records yet, type her name:</div>
-      <input id="f-mother-text" type="text" placeholder="Mother's full name" value="${entry ? esc(entry.motherText || '') : ''}" style="margin-top:4px;">
-
-      <div class="row2">
-        <div>
-          <label>Birth Year</label>
-          <input id="f-birth" type="text" placeholder="YYYY" value="${entry ? esc(entry.birth) : ''}">
-        </div>
-        <div>
-          <label>Death Year</label>
-          <input id="f-death" type="text" placeholder="YYYY" value="${entry ? esc(entry.death) : ''}">
-        </div>
-      </div>
-
-      <label>Photo</label>
-      <input id="f-photo" type="file" accept="image/*">
-      <img id="f-photo-preview" class="photo-preview" src="${entry && entry.photo ? esc(entry.photo) : ''}" style="${entry && entry.photo ? 'display:block;' : 'display:none;'}">
-
-      <div class="form-actions">
-        ${isEditing ? '<button class="btn-ghost" onclick="cancelEdit()">Cancel</button>' : ''}
-        <button class="btn-primary" onclick="submitForm()">${isEditing ? 'Save Changes' : 'Add to Tree'}</button>
-      </div>
-    </div>
-  `;
-
-  const formContainer = document.getElementById('form-container');
-  if(formContainer){
-    formContainer.innerHTML = html;
-    const photoInput = document.getElementById('f-photo');
-    if(photoInput){
-      photoInput.addEventListener('change', async (e)=>{
-        const file = e.target.files[0];
-        if(file){
-          pendingPhotoData = await compressImage(file);
-          const preview = document.getElementById('f-photo-preview');
-          if(preview){ preview.src = pendingPhotoData; preview.style.display = 'block'; }
-        }
-      });
-    }
-  }
-}
-
-function renderEntriesList(){
-  const container = document.getElementById('entries-list-container');
-  if(!container) return;
-  if(entries.length === 0){ container.innerHTML = '<div class="empty">No entries in tree.</div>'; return; }
-
-  const sorted = entries.slice().sort((a,b)=> fullNameFor(a).localeCompare(fullNameFor(b)));
-  
-  container.innerHTML = sorted.map(e => `
-    <div class="entry-row">
-      <div class="entry-left">
-        ${e.photo ? '<img class="thumb" src="'+esc(e.photo)+'">' : '<div class="thumb-fallback">'+esc((e.name||'?')[0].toUpperCase())+'</div>'}
-        <div>
-          <div class="entry-name">${esc(fullNameFor(e))}</div>
-          <div class="entry-meta">${e.family ? 'Family: '+esc(e.family) : 'Unrecorded'}</div>
-        </div>
-      </div>
-      <div class="entry-actions">
-        <button class="btn-refresh" onclick="startEditById('${esc(e.id)}')">Edit</button>
-        <button class="btn-ghost" onclick="promptDelete('${esc(e.id)}')">Remove</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderAll(){
-  const app = document.getElementById('app');
-  if(!app) return;
-
-  if(app.classList.contains('loading')){
-    app.classList.remove('loading');
-    app.innerHTML = `
-      <div class="layout">
-        <div class="side-col">
-          <div id="form-container"></div>
-          <div class="entries panel">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <h2 style="margin:0;">Tree Directory</h2>
-              <button class="btn-refresh no-print" onclick="openChangePinModal()">Manage PIN</button>
-            </div>
-            <div id="entries-list-container"></div>
-          </div>
-        </div>
-        <div class="main-col">
-          <div class="canvas-panel">
-            <div class="legend-row">
-              <div id="legend-container" class="legend"></div>
-              <div class="zoom-controls no-print">
-                <button class="btn-refresh" onclick="changeZoom(-0.1)">-</button>
-                <span id="zoom-level">100%</span>
-                <button class="btn-refresh" onclick="changeZoom(0.1)">+</button>
-                <button class="btn-refresh" onclick="resetZoom()">Reset</button>
-                <button class="btn-refresh" onclick="window.print()">Print</button>
-              </div>
-            </div>
-            <p class="print-hint no-print">Tip: Click any box to edit.</p>
-            <div class="canvas-inner" id="canvas-inner"></div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  renderForm();
-  renderEntriesList();
-  renderTree();
-  updateConnectionBanner();
-}
-
-function changeZoom(delta){
-  zoomLevel = Math.max(0.4, Math.min(2.0, zoomLevel + delta));
-  document.getElementById('zoom-level').innerText = Math.round(zoomLevel * 100) + '%';
-  renderTree();
-}
-
-function resetZoom(){
-  zoomLevel = 1;
-  document.getElementById('zoom-level').innerText = '100%';
-  renderTree();
-}
-
-function startEdit(entry){
-  editingId = entry.id;
-  pendingPhotoData = entry.photo || '';
-  renderForm();
-  window.scrollTo({top: 0, behavior: 'smooth'});
-}
-
-function startEditById(id){
-  const entry = getEntryById(id);
-  if(entry) startEdit(entry);
-}
-
-function cancelEdit(){
-  editingId = null;
-  pendingPhotoData = '';
-  renderForm();
-}
-
-async function submitForm(){
-  const name = document.getElementById('f-name').value.trim();
-  if(!name){ document.getElementById('err-name').style.display = 'block'; return; }
-
-  const family = document.getElementById('f-family').value.trim();
-  const fatherId = document.getElementById('f-father').value || null;
-  const motherId = document.getElementById('f-mother').value || null;
-  const motherText = document.getElementById('f-mother-text').value.trim();
-  const birth = document.getElementById('f-birth').value.trim();
-  const death = document.getElementById('f-death').value.trim();
-
-  let photo = pendingPhotoData;
-  if(editingId && !photo){
-    const existing = getEntryById(editingId);
-    if(existing) photo = existing.photo || '';
-  }
-
-  if(editingId){
-    const index = entries.findIndex(e => e.id === editingId);
-    if(index !== -1){
-      entries[index] = { ...entries[index], name, family, fatherId, motherId, motherText, birth, death, photo };
-    }
-  } else {
-    entries.push({
-      id: 'id-' + simpleHash(Date.now() + '-' + Math.random()),
-      name, family, fatherId, motherId, motherText, birth, death, photo
-    });
-  }
-
-  editingId = null;
-  pendingPhotoData = '';
-  await saveEntries();
-  renderAll();
-}
-
-function promptDelete(id){
-  pendingDeleteId = id;
-  const overlay = document.getElementById('pin-overlay');
-  document.getElementById('pin-input').value = '';
-  document.getElementById('pin-confirm').value = '';
-  document.getElementById('pin-err').style.display = 'none';
-
-  if(!adminPinHash){
-    document.getElementById('pin-title').innerText = 'Set Removal PIN';
-    document.getElementById('pin-confirm').style.display = 'block';
-  } else {
-    document.getElementById('pin-title').innerText = 'Enter Removal PIN';
-    document.getElementById('pin-confirm').style.display = 'none';
-  }
-  overlay.style.display = 'flex';
-}
-
-async function handlePinSubmit(){
-  const pinInput = document.getElementById('pin-input').value;
-  const confirmInput = document.getElementById('pin-confirm').value;
-  const pinErr = document.getElementById('pin-err');
-
-  if(!adminPinHash){
-    if(!pinInput || pinInput !== confirmInput){
-      pinErr.innerText = 'PINs must match and cannot be empty.';
-      pinErr.style.display = 'block';
-      return;
-    }
-    adminPinHash = simpleHash(pinInput);
-    await saveAdmin(adminPinHash);
-    executeDelete();
-  } else {
-    if(simpleHash(pinInput) === adminPinHash){
-      executeDelete();
-    } else {
-      pinErr.innerText = 'Incorrect PIN.';
-      pinErr.style.display = 'block';
-    }
-  }
-}
-
-async function executeDelete(){
-  if(!pendingDeleteId) return;
-  entries = entries.filter(e => e.id !== pendingDeleteId);
-  entries.forEach(e => {
-    if(e.fatherId === pendingDeleteId) e.fatherId = null;
-    if(e.motherId === pendingDeleteId) e.motherId = null;
-  });
-  pendingDeleteId = null;
-  document.getElementById('pin-overlay').style.display = 'none';
-  await saveEntries();
-  renderAll();
-}
-
-function openChangePinModal(){
-  document.getElementById('cp-current').value = '';
-  document.getElementById('cp-new').value = '';
-  document.getElementById('cp-new-confirm').value = '';
-  document.getElementById('cp-err').style.display = 'none';
-  document.getElementById('change-pins-overlay').style.display = 'flex';
-}
-
-async function handleChangePin(){
-  const curr = document.getElementById('cp-current').value;
-  const n1 = document.getElementById('cp-new').value;
-  const n2 = document.getElementById('cp-new-confirm').value;
-  const err = document.getElementById('cp-err');
-
-  if(adminPinHash && simpleHash(curr) !== adminPinHash){
-    err.innerText = 'Current PIN is incorrect.'; err.style.display = 'block'; return;
-  }
-  if(!n1 || n1 !== n2){
-    err.innerText = 'New PINs do not match.'; err.style.display = 'block'; return;
-  }
-
-  adminPinHash = simpleHash(n1);
-  await saveAdmin(adminPinHash);
-  document.getElementById('change-pins-overlay').style.display = 'none';
-}
-
-document.addEventListener('DOMContentLoaded', async ()=>{
-  document.getElementById('pin-cancel').addEventListener('click', ()=>{ document.getElementById('pin-overlay').style.display = 'none'; });
-  document.getElementById('pin-submit').addEventListener('click', handlePinSubmit);
-  document.getElementById('cp-cancel').addEventListener('click', ()=>{ document.getElementById('change-pins-overlay').style.display = 'none'; });
-  document.getElementById('cp-submit').addEventListener('click', handleChangePin);
-  document.getElementById('photo-lightbox').addEventListener('click', ()=>{ document.getElementById('photo-lightbox').style.display = 'none'; });
-
-  await loadAdmin();
-  await loadEntries();
-  renderAll();
-  startRealtimeSync();
-});
-</script>
-</body>
-</html>
