@@ -1,109 +1,122 @@
-function renderTree(){
-  const nodes = buildGraph();
-  const container = document.getElementById('canvas-inner');
-  if(!container) return;
-  if(nodes.size === 0){
-    container.innerHTML = '<div class="empty-canvas">The tree is empty. Add the first person on the left to begin.</div>';
-    renderLegend(nodes);
-    return;
-  }
-  const {positions, width, height, nodeW, nodeH} = computeLayout(nodes);
-  const padX = 40, padY = 30;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Family Tree</title>
+</head>
+<body>
 
-  let defs = '';
-  let branches = '';
-  let svg = '';
-  let clipIndex = 0;
+  <!-- The canvas container where the tree is drawn -->
+  <div id="canvas-inner"></div>
 
-  // Group children by their primary parent ID
-  const familyGroups = new Map();
-  nodes.forEach((node) => {
-    const parentId = node.fatherId || node.motherId;
-    if (parentId && positions[parentId]) {
-      if (!familyGroups.has(parentId)) familyGroups.set(parentId, []);
-      familyGroups.get(parentId).push(node);
-    }
-  });
+  <!-- JavaScript MUST go inside script tags -->
+  <script>
+    function renderTree(){
+      const nodes = buildGraph();
+      const container = document.getElementById('canvas-inner');
+      if(!container) return;
+      if(nodes.size === 0){
+        container.innerHTML = '<div class="empty-canvas">The tree is empty. Add the first person on the left to begin.</div>';
+        renderLegend(nodes);
+        return;
+      }
+      const {positions, width, height, nodeW, nodeH} = computeLayout(nodes);
+      const padX = 40, padY = 30;
 
-  // Render connector branches per parent group
-  familyGroups.forEach((children, parentId) => {
-    const pPos = positions[parentId];
-    const parentX = pPos.x + padX + nodeW / 2;
-    const parentY = pPos.y + padY + nodeH;
+      let defs = '';
+      let branches = '';
+      let svg = '';
+      let clipIndex = 0;
 
-    const childPositions = children.map(c => positions[c.key].x + padX + nodeW / 2);
-    const minChildX = Math.min(...childPositions);
-    const maxChildX = Math.max(...childPositions);
-    const midY = parentY + 40;
-
-    const col = familyColor(nodes.get(parentId).family);
-
-    // Vertical stem down from parent
-    branches += `<path class="branch" d="M ${parentX} ${parentY} L ${parentX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
-
-    // Horizontal bar connecting children of this parent
-    if (children.length > 1) {
-      branches += `<path class="branch" d="M ${minChildX} ${midY} L ${maxChildX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
-    }
-
-    // Vertical drop lines to each child
-    children.forEach((child) => {
-      const cX = positions[child.key].x + padX + nodeW / 2;
-      const cY = positions[child.key].y + padY;
-      branches += `<path class="branch" d="M ${cX} ${midY} L ${cX} ${cY}" stroke="${col}" opacity="0.7" fill="none"/>`;
-    });
-  });
-
-  // Render individual node cards
-  nodes.forEach((node)=>{
-    const pos = positions[node.key];
-    const x = pos.x + padX, y = pos.y + padY;
-    const col = familyColor(node.family);
-    const life = lifespan(node);
-    const nameLines = wrapName(node.displayName, 22);
-    const textX = node.photo ? x+42 : x+16;
-    const motherLines = node.motherText ? wrapName('m. '+node.motherText, 26) : [];
-    const lineGap = 16;
-
-    const nameStartY = y + 28;
-    const nameSvg = nameLines.map((ln,i)=>`<text class="node-name" x="${textX}" y="${nameStartY + i * lineGap}" font-size="14">${esc(ln)}</text>`).join('');
-    const afterNameY = nameStartY + (nameLines.length - 1) * lineGap;
-    const avatarCy = nameStartY - 14;
-    
-    let avatar = `<circle cx="${x + 16}" cy="${avatarCy}" r="4" fill="${col}"/>`;
-    if(node.photo){
-      const cid = `clip${clipIndex++}`;
-      defs += `<clipPath id="${cid}"><circle cx="${x + 18}" cy="${avatarCy + 2}" r="14"/></clipPath>`;
-      avatar = `<g class="node-photo">`
-        + `<image href="${node.photo}" x="${x + 4}" y="${avatarCy - 10}" width="28" height="28" clip-path="url(#${cid})" preserveAspectRatio="xMidYMid slice"/>`
-        + `<circle cx="${x + 18}" cy="${avatarCy + 2}" r="14" fill="none" stroke="${col}" stroke-width="1.4"/>`
-        + `</g>`;
-    }
-
-    svg += `<g class="fam-node" data-id="${esc(node.key)}" style="cursor:pointer">`
-      + `<rect class="node-card" x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="10" style="stroke:${col}"/>`
-      + avatar
-      + nameSvg
-      + `<text class="node-family" x="${textX}" y="${afterNameY + 16}" font-size="10.5" fill="${col}">${esc((node.family || 'unrecorded').toUpperCase())}</text>`;
-
-    let rowY = afterNameY + 32;
-    if(motherLines.length){
-      motherLines.forEach((ln,i)=>{
-        svg += `<text class="node-mother" x="${textX}" y="${rowY + i * 13}" font-size="10">${esc(ln)}</text>`;
+      // Group children by primary parent ID
+      const familyGroups = new Map();
+      nodes.forEach((node) => {
+        const parentId = node.fatherId || node.motherId;
+        if (parentId && positions[parentId]) {
+          if (!familyGroups.has(parentId)) familyGroups.set(parentId, []);
+          familyGroups.get(parentId).push(node);
+        }
       });
-      rowY += motherLines.length * 13 + 3;
-    }
-    if(life){
-      svg += `<text class="node-dates" x="${textX}" y="${rowY}" font-size="10">${esc(life)}</text>`;
-    }
-    svg += `</g>`;
-  });
 
-  const containerWidth = container.clientWidth || width;
-  const fitScale = containerWidth / width;
-  const finalScale = fitScale * zoomLevel;
-  const renderedWidth = Math.round(width * finalScale);
-  const renderedHeight = Math.round(height * finalScale);
+      // Render connector branches per parent group
+      familyGroups.forEach((children, parentId) => {
+        const pPos = positions[parentId];
+        const parentX = pPos.x + padX + nodeW / 2;
+        const parentY = pPos.y + padY + nodeH;
 
-  container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" style="display:block;width:${renderedWidth}px;height:${renderedHeight}px"><defs>${defs}</defs>${branches}${svg}</svg>`;
-}
+        const childPositions = children.map(c => positions[c.key].x + padX + nodeW / 2);
+        const minChildX = Math.min(...childPositions);
+        const maxChildX = Math.max(...childPositions);
+        const midY = parentY + 40;
+
+        const col = familyColor(nodes.get(parentId).family);
+
+        branches += `<path class="branch" d="M ${parentX} ${parentY} L ${parentX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
+
+        if (children.length > 1) {
+          branches += `<path class="branch" d="M ${minChildX} ${midY} L ${maxChildX} ${midY}" stroke="${col}" opacity="0.7" fill="none"/>`;
+        }
+
+        children.forEach((child) => {
+          const cX = positions[child.key].x + padX + nodeW / 2;
+          const cY = positions[child.key].y + padY;
+          branches += `<path class="branch" d="M ${cX} ${midY} L ${cX} ${cY}" stroke="${col}" opacity="0.7" fill="none"/>`;
+        });
+      });
+
+      // Render individual node cards
+      nodes.forEach((node)=>{
+        const pos = positions[node.key];
+        const x = pos.x + padX, y = pos.y + padY;
+        const col = familyColor(node.family);
+        const life = lifespan(node);
+        const nameLines = wrapName(node.displayName, 22);
+        const textX = node.photo ? x+42 : x+16;
+        const motherLines = node.motherText ? wrapName('m. '+node.motherText, 26) : [];
+        const lineGap = 16;
+
+        const nameStartY = y + 28;
+        const nameSvg = nameLines.map((ln,i)=>`<text class="node-name" x="${textX}" y="${nameStartY + i * lineGap}" font-size="14">${esc(ln)}</text>`).join('');
+        const afterNameY = nameStartY + (nameLines.length - 1) * lineGap;
+        const avatarCy = nameStartY - 14;
+        
+        let avatar = `<circle cx="${x + 16}" cy="${avatarCy}" r="4" fill="${col}"/>`;
+        if(node.photo){
+          const cid = `clip${clipIndex++}`;
+          defs += `<clipPath id="${cid}"><circle cx="${x + 18}" cy="${avatarCy + 2}" r="14"/></clipPath>`;
+          avatar = `<g class="node-photo">`
+            + `<image href="${node.photo}" x="${x + 4}" y="${avatarCy - 10}" width="28" height="28" clip-path="url(#${cid})" preserveAspectRatio="xMidYMid slice"/>`
+            + `<circle cx="${x + 18}" cy="${avatarCy + 2}" r="14" fill="none" stroke="${col}" stroke-width="1.4"/>`
+            + `</g>`;
+        }
+
+        svg += `<g class="fam-node" data-id="${esc(node.key)}" style="cursor:pointer">`
+          + `<rect class="node-card" x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="10" style="stroke:${col}"/>`
+          + avatar
+          + nameSvg
+          + `<text class="node-family" x="${textX}" y="${afterNameY + 16}" font-size="10.5" fill="${col}">${esc((node.family || 'unrecorded').toUpperCase())}</text>`;
+
+        let rowY = afterNameY + 32;
+        if(motherLines.length){
+          motherLines.forEach((ln,i)=>{
+            svg += `<text class="node-mother" x="${textX}" y="${rowY + i * 13}" font-size="10">${esc(ln)}</text>`;
+          });
+          rowY += motherLines.length * 13 + 3;
+        }
+        if(life){
+          svg += `<text class="node-dates" x="${textX}" y="${rowY}" font-size="10">${esc(life)}</text>`;
+        }
+        svg += `</g>`;
+      });
+
+      const containerWidth = container.clientWidth || width;
+      const fitScale = containerWidth / width;
+      const finalScale = fitScale * zoomLevel;
+      const renderedWidth = Math.round(width * finalScale);
+      const renderedHeight = Math.round(height * finalScale);
+
+      container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" style="display:block;width:${renderedWidth}px;height:${renderedHeight}px"><defs>${defs}</defs>${branches}${svg}</svg>`;
+    }
+  </script>
+</body>
+</html>
