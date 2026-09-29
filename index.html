@@ -512,8 +512,8 @@ function computeLayout(nodes){
   nodes.forEach((n,key)=>{ const d = depthCache.get(key); (levels[d] = levels[d] || []).push(key); });
   const maxDepth = Math.max(0, ...Object.keys(levels).map(Number));
 
-  // Wider spacing so nodes and connecting lines aren't cramped together.
-  const spacingX = 300, spacingY = 280, nodeW = 200, nodeH = 140;
+  // Generous sibling spacing so cards and connector lines are clearly separated.
+  const spacingX = 320, spacingY = 320, nodeW = 200, nodeH = 140;
   const positions = {};
   function barycenter(key){
     const node = nodes.get(key);
@@ -540,7 +540,7 @@ function computeLayout(nodes){
     keys.forEach((key)=>{
       const node = nodes.get(key);
       const thisParentKey = node.parents[0] || null;
-      if(prevParentKey !== undefined && thisParentKey !== prevParentKey){ cursorX += spacingX * 1.8; }
+      if(prevParentKey !== undefined && thisParentKey !== prevParentKey){ cursorX += spacingX * 1.6; }
       positions[key] = {x: cursorX, y: d*spacingY, depth:d};
       cursorX += spacingX;
       prevParentKey = thisParentKey;
@@ -584,33 +584,85 @@ function renderTree(){
   let clipIndex = 0;
   const photoByIndex = {};
 
+  // Group children by their primary parent (father if present, else mother) so we
+  // can draw one clean "bus" line per parent instead of many overlapping L-paths.
+  // Couples (mother+father at same level) are handled separately below.
+  const kidsByParent = new Map();
+  const coupleKids = []; // children with both parents positioned on the same row
   nodes.forEach((node)=>{
-    const pos = positions[node.key];
-    const cx = pos.x + padX + nodeW/2, cy = pos.y + padY;
     const parentsPositioned = node.parents.filter(p=>positions[p]);
-    const col = familyColor(node.family);
     if(parentsPositioned.length === 2){
       const a = positions[parentsPositioned[0]], b = positions[parentsPositioned[1]];
       if(a.y === b.y){
-        const ax = a.x+padX+nodeW/2, ay = a.y+padY+nodeH;
-        const bx = b.x+padX+nodeW/2, by = b.y+padY+nodeH;
-        const midX = (ax+bx)/2, midY = (ay+by)/2;
-        branches += '<path class="branch" d="M '+ax+' '+(ay-nodeH/2)+' L '+bx+' '+(by-nodeH/2)+'" stroke="'+col+'" opacity="0.55"/>';
-        branches += '<path class="branch" d="M '+midX+' '+(midY-nodeH/2)+' L '+midX+' '+(cy-24)+' L '+cx+' '+(cy-24)+' L '+cx+' '+cy+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
-      } else {
-        parentsPositioned.forEach(pKey=>{
-          const p = positions[pKey];
-          const ax = p.x+padX+nodeW/2, ay = p.y+padY+nodeH;
-          const bendY = cy - 24;
-          branches += '<path class="branch" d="M '+ax+' '+ay+' L '+ax+' '+bendY+' L '+cx+' '+bendY+' L '+cx+' '+cy+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
-        });
+        coupleKids.push(node);
+        return;
       }
-    } else if(parentsPositioned.length === 1){
-      const a = positions[parentsPositioned[0]];
-      const ax = a.x+padX+nodeW/2, ay = a.y+padY+nodeH;
-      const bendY = cy - 24;
-      branches += '<path class="branch" d="M '+ax+' '+ay+' L '+ax+' '+bendY+' L '+cx+' '+bendY+' L '+cx+' '+cy+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
     }
+    if(parentsPositioned.length >= 1){
+      // Prefer father as the primary stem when both exist but are on different rows
+      const primary = (node.fatherId && positions[node.fatherId]) ? node.fatherId
+        : (node.motherId && positions[node.motherId]) ? node.motherId
+        : parentsPositioned[0];
+      if(!kidsByParent.has(primary)) kidsByParent.set(primary, []);
+      kidsByParent.get(primary).push(node);
+    }
+  });
+
+  // Shared bus for each single-parent (or primary-parent) group
+  kidsByParent.forEach((kids, parentKey)=>{
+    const parentPos = positions[parentKey];
+    if(!parentPos) return;
+    const col = familyColor(nodes.get(kids[0]).family);
+    const px = parentPos.x + padX + nodeW/2;
+    const py = parentPos.y + padY + nodeH;
+    const childCenters = kids.map(k=>{
+      const p = positions[k.key];
+      return {x: p.x + padX + nodeW/2, y: p.y + padY};
+    });
+    const busY = Math.min(...childCenters.map(c=>c.y)) - 52;
+    const minX = Math.min(...childCenters.map(c=>c.x));
+    const maxX = Math.max(...childCenters.map(c=>c.x));
+    // Stem from parent down to the bus
+    branches += '<path class="branch" d="M '+px+' '+py+' L '+px+' '+busY+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
+    // Horizontal bus spanning all siblings
+    if(kids.length > 1){
+      branches += '<path class="branch" d="M '+minX+' '+busY+' L '+maxX+' '+busY+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
+    }
+    // Drop to each child
+    childCenters.forEach(c=>{
+      branches += '<path class="branch" d="M '+c.x+' '+busY+' L '+c.x+' '+c.y+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
+    });
+  });
+
+  // Couple connections: one spouse bar + shared bus down to all shared children
+  const coupleGroups = new Map();
+  coupleKids.forEach((node)=>{
+    const key = [...node.parents].filter(p=>positions[p]).sort().join('|');
+    if(!coupleGroups.has(key)) coupleGroups.set(key, []);
+    coupleGroups.get(key).push(node);
+  });
+  coupleGroups.forEach((kids)=>{
+    const parentsPositioned = kids[0].parents.filter(p=>positions[p]);
+    const a = positions[parentsPositioned[0]], b = positions[parentsPositioned[1]];
+    const col = familyColor(kids[0].family);
+    const ax = a.x+padX+nodeW/2, ay = a.y+padY+nodeH;
+    const bx = b.x+padX+nodeW/2, by = b.y+padY+nodeH;
+    const midX = (ax+bx)/2;
+    const childCenters = kids.map(k=>{
+      const p = positions[k.key];
+      return {x: p.x + padX + nodeW/2, y: p.y + padY};
+    });
+    const busY = Math.min(...childCenters.map(c=>c.y)) - 52;
+    const minX = Math.min(...childCenters.map(c=>c.x), midX);
+    const maxX = Math.max(...childCenters.map(c=>c.x), midX);
+    branches += '<path class="branch" d="M '+ax+' '+(ay-nodeH/2)+' L '+bx+' '+(by-nodeH/2)+'" stroke="'+col+'" opacity="0.55"/>';
+    branches += '<path class="branch" d="M '+midX+' '+(ay-nodeH/2)+' L '+midX+' '+busY+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
+    if(kids.length > 1 || minX !== maxX){
+      branches += '<path class="branch" d="M '+minX+' '+busY+' L '+maxX+' '+busY+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
+    }
+    childCenters.forEach(c=>{
+      branches += '<path class="branch" d="M '+c.x+' '+busY+' L '+c.x+' '+c.y+'" stroke="'+col+'" opacity="0.85" fill="none"/>';
+    });
   });
 
   nodes.forEach((node)=>{
